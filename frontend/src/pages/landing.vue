@@ -23,7 +23,7 @@
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <a href="/auth">
+                    <a href="/auth/login">
                         <button
                             class="px-6 py-2.5 cursor-pointer bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all shadow-sm active:scale-95">
                             Get Started
@@ -52,7 +52,7 @@
                 </p>
 
                 <div class="flex flex-wrap gap-4 pt-2">
-                    <a href="/auth">
+                    <a href="/auth/login">
                         <button
                             class="px-8 py-4 cursor-pointer bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">
                             Book Appointment

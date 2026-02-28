@@ -15,10 +15,14 @@ const routes = [
         component: () => import("../layout/AuthLayout.vue"),
         children: [
             {
-                path:"", component: () => import("../pages/auth/Login.vue")
+                path:"login", component: () => import("../pages/auth/Login.vue")
             },
             {
                 path:"register", component: () => import("../pages/auth/Register.vue")
+            },
+            {
+            path: "",
+            redirect: "/auth/login"
             }
         ]
     }

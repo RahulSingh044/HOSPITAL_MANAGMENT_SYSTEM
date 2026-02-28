@@ -12,11 +12,15 @@ from routes.appointments import appointment_bp
 
 from redis_client import redis_client
 
+from flask_cors import CORS
+
 print("Testing Redis connection...")
 print(redis_client.ping())
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+CORS(app)
 
 jwt = JWTManager(app)
 

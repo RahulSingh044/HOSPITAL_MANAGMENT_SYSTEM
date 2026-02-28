@@ -62,7 +62,7 @@
             </form>
             <p class="mt-4 text-center text-sm text-slate-500">
                 Don't have an account?
-                <a href="/auth/register" class="font-bold text-blue-600 hover:text-blue-700">Sign Up</a>
+                <router-link to="/auth/register" class="font-bold text-blue-600 hover:text-blue-700"> Sign Up</router-link>
             </p>
 
 
@@ -80,6 +80,8 @@
 </template>
 
 <script setup>
+import API from '../../services/api'
+import { useRouter } from 'vue-router'
 import { reactive, ref } from 'vue'
 import {
     EnvelopeIcon,
@@ -89,6 +91,8 @@ import {
     ArrowRightIcon
 } from '@heroicons/vue/24/outline'
 
+const router = useRouter()
+
 const selectedRole = ref('Doctor')
 const showPassword = ref(false)
 
@@ -97,8 +101,25 @@ const userDetails = reactive({
     password: '',
 })
 
+const handleLogin = async () => {
+    try {
+        const response = await API.post("/auth/login", {
+            email: userDetails.email,
+            password: userDetails.password
+        })
 
-const handleLogin = () => {
-    console.log("Logged in as", { ...userDetails, role: selectedRole.value })
+        const token = response.data.token
+
+        localStorage.setItem("token", token)
+
+        alert("Login Successful")
+
+        router.push("/") 
+
+    } catch (error) {
+        alert("Invalid Email or Password ")
+        console.error(error)
+    }
 }
+
 </script>

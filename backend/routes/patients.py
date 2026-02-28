@@ -14,6 +14,7 @@ def add_patient():
         "id": patient_id,
         "name": data["name"],
         "age": data["age"],
+        "gender": data["gender"],
         "mobile": data["mobile"]
     })
 

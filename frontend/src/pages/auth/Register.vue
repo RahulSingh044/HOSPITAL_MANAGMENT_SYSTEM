@@ -118,15 +118,19 @@
 </template>
 
 <script setup>
+import API from '../../services/api'
 import { ref } from 'vue'
+import {useRouter} from 'vue-router'
+
 import {
     UserIcon, CalendarIcon, PhoneIcon, EnvelopeIcon,
     LockClosedIcon, EyeIcon, EyeSlashIcon, UserPlusIcon
 } from '@heroicons/vue/24/outline'
 
+const router = useRouter()
+
 const isChecked = ref(false)
 const showPassword = ref(false)
-
 
 const formData = ref({
     fullName: '',
@@ -138,7 +142,7 @@ const formData = ref({
 })
 
 
-const handleSubmit = () => {
+const handleSubmit() => {
 
     if (!formData.value.fullName || !formData.value.dob || !formData.value.gender || !formData.value.phone || !formData.value.email || !formData.value.password) {
         alert('Please fill in all required fields.')
@@ -150,6 +154,21 @@ const handleSubmit = () => {
         return
     }
 
+    try{
+        await API.post("auth/register",{
+            name: formData.value.fullName,
+            email: formData.value.email,
+            password: formData.value.password
+        })
+
+        alert("Registration Successful")
+        router.push("/login")
+    }
+    catch{
+        alert("Registration Failed)
+        console.error(error)
+    }
+    
     console.log('Form submitted:', formData.value)
 }
 </script>
