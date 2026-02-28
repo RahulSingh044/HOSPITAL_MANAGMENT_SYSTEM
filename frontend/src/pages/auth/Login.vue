@@ -62,7 +62,7 @@
             </form>
             <p class="mt-4 text-center text-sm text-slate-500">
                 Don't have an account?
-                <a href="/auth/register" class="font-bold text-blue-600 hover:text-blue-700">Sign Up</a>
+                <router-link to="/auth/register" class="font-bold text-blue-600 hover:text-blue-700">Sign Up</router-link>
             </p>
 
 

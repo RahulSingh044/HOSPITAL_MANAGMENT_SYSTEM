@@ -29,24 +29,24 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to, from, next) => {
-  const user = JSON.parse(localStorage.getItem('user'))
+// router.beforeEach((to, from, next) => {
+//   const user = JSON.parse(localStorage.getItem('user'))
 
-  // 🌐 Public routes
-  if (to.path === '/' || to.path.startsWith('/auth')) {
-    return next()
-  }
-
-  // 🔐 Protected routes
-//   if (to.meta.role) {
-//     if (!user) return next('/auth/login')
-
-//     if (user.role !== to.meta.role) {
-//       return next('/')
-//     }
+//   // 🌐 Public routes
+//   if (to.path === '/' || to.path.startsWith('/auth')) {
+//     return next()
 //   }
 
-  next()
-})
+//   // 🔐 Protected routes
+// //   if (to.meta.role) {
+// //     if (!user) return next('/auth/login')
+
+// //     if (user.role !== to.meta.role) {
+// //       return next('/')
+// //     }
+// //   }
+
+//   next()
+// })
 
 export default router;
