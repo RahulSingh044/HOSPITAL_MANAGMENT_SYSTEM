@@ -21,7 +21,32 @@ const routes = [
                 path:"register", component: () => import("../pages/auth/Register.vue")
             }
         ]
-    }
+    },
+
+    // Admin Pages
+{
+  path: "/admin",
+  component: () => import("../layout/AdminLayout.vue"),
+  meta: { role: "admin" },
+  children: [
+    {
+      path: "",
+      component: () => import("../pages/admin/Dashboard.vue"),
+    },
+    {
+      path: "doctors",
+      component: () => import("../pages/admin/Doctor.vue"),
+    },
+    {
+      path: "patients",
+      component: () => import("../pages/admin/Patient.vue"),
+    },
+    {
+      path: "appointments",
+      component: () => import("../pages/admin/Appointments.vue"),
+    },
+  ]
+}
 ]
 
 const router = createRouter({
