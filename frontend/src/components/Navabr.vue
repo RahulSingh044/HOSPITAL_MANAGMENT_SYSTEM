@@ -9,11 +9,30 @@ import { useRoute } from "vue-router";
 import { computed } from "vue";
 
 const route = useRoute();
+
+const pathSegments = computed(() =>
+  route.path.split("/").filter(Boolean)
+);
+
+const role = computed(() => pathSegments.value[0]);
+
 const currentPath = computed(() => {
-  const pathSegments = route.path.split("/").filter(Boolean);
-  if (pathSegments.length === 0 || pathSegments[pathSegments.length - 1] === "admin") return "Dashboard";
-  return pathSegments[pathSegments.length - 1].replace(/-/g, " ").replace(/\b\w/g, char => char.toUpperCase());
-})
+  const segments = pathSegments.value;
+
+  if (
+    segments.length === 0 ||
+    segments[segments.length - 1] === "admin" ||
+    segments[segments.length - 1] === "doctor"
+  ) {
+    return "Dashboard";
+  }
+
+  return segments[segments.length - 1]
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, char => char.toUpperCase());
+});
+
+console.log("role", role.value);
 
 </script>
 
@@ -37,7 +56,8 @@ const currentPath = computed(() => {
 
     <div class="flex items-center gap-6">
       <template v-if="currentPath === 'Doctors' || currentPath === 'Patient'">
-         <button class="flex cursor-pointer items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
+        <button
+          class="flex cursor-pointer items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
           <Plus :size="18" /> Add Dcotor
         </button>
       </template>
@@ -49,8 +69,16 @@ const currentPath = computed(() => {
           <User :size="20" />
         </div>
         <div class="text-left hidden md:block">
-          <p class="text-sm font-semibold text-slate-800 leading-none">Rahul Sharma</p>
-          <p class="text-xs text-slate-400 mt-1">Administrator</p>
+          <p class="text-md font-semibold text-slate-800 leading-none">Rahul Sharma</p>
+          <template v-if="role === 'doctor'">
+            <p class="text-xs text-slate-400 mt-1">Doctor</p>
+          </template>
+          <template v-else-if="role === 'admin'">
+            <p class="text-xs text-slate-400 mt-1">Administrator</p>
+          </template>
+          <template v-else-if="role === 'patient'">
+            <p class="text-xs text-slate-400 mt-1">Patient</p>
+          </template>
         </div>
       </button>
     </div>

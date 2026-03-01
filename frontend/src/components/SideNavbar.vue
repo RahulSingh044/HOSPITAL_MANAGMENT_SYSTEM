@@ -8,14 +8,30 @@ import {
   Settings, 
   LogOut 
 } from 'lucide-vue-next';
+import { useRouter } from 'vue-router';
+import { computed} from 'vue';
+
+const router = useRouter();
+const route = computed(() => {
+  const path = router.currentRoute.value.path.split('/').filter(Boolean);
+  return { path };
+});
+
+const currentPath = route.value.path[0];
 
 const activeItem = ref('Dashboard');
 
-const menuItems = [
+const AdminMenuItems = [
   { name: 'Dashboard', icon: LayoutGrid, link: '/admin' },
   { name: 'Doctors', icon: BriefcaseMedical, link: '/admin/doctors' },
   { name: 'Patients', icon: Users, link: '/admin/patients' },
   { name: 'Appointments', icon: CalendarDays, link: '/admin/appointments' }
+];
+
+const DoctorMenuItems = [
+  { name: 'Dashboard', icon: LayoutGrid, link: '/doctor' },
+  { name: 'MyPatients', icon: Users, link: '/doctor/patients' },
+  { name: 'Appointments', icon: CalendarDays, link: '/doctor/appointments' }
 ];
 
 const footerItems = [
@@ -40,8 +56,9 @@ const footerItems = [
 
     <nav class="flex-1 space-y-1">
     <!-- Menu Items -->
-      <button
-        v-for="item in menuItems"
+     <template v-if="currentPath === 'admin' ? AdminMenuItems : DoctorMenuItems">
+       <button
+        v-for="item in currentPath === 'admin' ? AdminMenuItems : DoctorMenuItems"
         :key="item.name"
         @click="activeItem = item.name; $router.push(item.link)"
         :class="[
@@ -54,6 +71,7 @@ const footerItems = [
         <component :is="item.icon" :size="20" :stroke-width="activeItem === item.name ? 2.5 : 2" />
         <span class="font-medium">{{ item.name }}</span>
       </button>
+     </template> 
     </nav>
 
     <div class="pt-4 border-t border-gray-50 space-y-1">
