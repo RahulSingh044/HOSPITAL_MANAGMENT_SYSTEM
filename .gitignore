@@ -30,7 +30,8 @@ __pycache__/
 instance/
 
 # Virtual environments
-venv/
+/backend/myenv
+/backend/venv/
 .venv/
 env/
 

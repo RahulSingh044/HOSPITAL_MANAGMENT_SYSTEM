@@ -22,27 +22,48 @@ def register():
         "gender": data["gender"],
         "mobile": data["mobile"],
         "email": data["email"],
-        "password": generate_password_hash(data["password"])  # hash password before storing
+        "password": generate_password_hash(data["password"])
     })
 
     redis_client.set(f"user:email:{data['email']}", user_id)
 
     return jsonify({"message": "User registered"}), 201
 
-
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
 
+    # Validate required fields
+    if not data or not data.get("email") or not data.get("password") or not data.get("role"):
+        return jsonify({"error": "Email, password and role are required"}), 400
+
+    # Get user ID from Redis using email
     user_id = redis_client.get(f"user:email:{data['email']}")
 
     if not user_id:
         return jsonify({"error": "Invalid credentials"}), 401
 
+    # Get full user data
     user = redis_client.hgetall(f"user:{user_id}")
 
-    if check_password_hash(user["password"], data["password"]):
-        token = create_access_token(identity=user["id"])
-        return jsonify({"token": token})  # auth token generation
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
 
-    return jsonify({"error": "Invalid credentials"}), 401
+    # Check password
+    if not check_password_hash(user["password"], data["password"]):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    # Check role matches registered role
+    if user.get("role") != data["role"]:
+        return jsonify({"error": "Role mismatch"}), 403
+
+    # Generate JWT with role included
+    token = create_access_token(
+        identity=user["id"],
+        additional_claims={"role": user["role"]}
+    )
+
+    return jsonify({
+        "token": token,
+        "role": user["role"]
+    }), 200

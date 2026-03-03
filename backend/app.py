@@ -20,7 +20,13 @@ print(redis_client.ping())
 app = Flask(__name__)
 app.config.from_object(Config)
 
-CORS(app)
+CORS(app, resources={
+    r"/auth/*": {
+        "origins": [
+            "http://localhost:5173"
+        ]
+    }
+})
 
 jwt = JWTManager(app)
 
