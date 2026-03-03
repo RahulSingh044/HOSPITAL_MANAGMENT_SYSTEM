@@ -1,3 +1,64 @@
+<script setup>
+import { useRouter } from 'vue-router'
+import { reactive, ref } from 'vue'
+import {
+    EnvelopeIcon,
+    LockClosedIcon,
+    EyeIcon,
+    EyeSlashIcon,
+    ArrowRightIcon
+} from '@heroicons/vue/24/outline'
+import { loginAPI } from '../../services/auth'
+
+const router = useRouter()
+
+const selectedRole = ref('doctor')
+const showPassword = ref(false)
+const loading = ref(false)
+
+const userDetails = reactive({
+    email: '',
+    password: '',
+})
+
+const handleLogin = async () => {
+    try {
+        loading.value = true
+        const data = await loginAPI({
+            email: userDetails.email,
+            password: userDetails.password,
+            role: selectedRole.value
+        })
+
+        const token = data.token
+        const role = data.role
+
+        localStorage.setItem("token", token)
+
+        alert("Login Successful")
+
+        if(role === 'admin') {
+            router.push("/admin")
+        } else if (role === 'doctor') {
+            router.push("/doctor")
+        } else if (role === 'patient') {
+            router.push("/patient")
+        }
+
+    } catch (error) {
+        alert("Invalid Email or Password ")
+        console.error(error)
+    } finally {
+        loading.value = false
+        userDetails = {
+            email: '',
+            password: '',
+        }
+    }
+}
+
+</script>
+
 <template>
     <div class="min-h-screen min-w-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
         <div class="bg-white rounded-4xl shadow-xl shadow-slate-200/60 p-10 md:p-12">
@@ -12,7 +73,7 @@
             <div class="mb-8">
                 <label class="block text-sm font-bold text-slate-700 mb-3">Select Role</label>
                 <div class="flex p-1.5 bg-slate-100 rounded-2xl">
-                    <button v-for="role in ['Admin', 'Doctor', 'Patient']" :key="role" @click="selectedRole = role"
+                    <button v-for="role in ['admin', 'doctor', 'patient']" :key="role" @click="selectedRole = role"
                         :class="[
                             'flex-1 py-2.5 text-sm font-bold rounded-xl transition-all',
                             selectedRole === role
@@ -56,7 +117,7 @@
 
                 <button
                     class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                    Sign In to Dashboard
+                    {{ loading ? 'Logging in...' : 'Login' }}
                     <ArrowRightIcon class="w-5 h-5" />
                 </button>
             </form>
@@ -79,47 +140,3 @@
     </div>
 </template>
 
-<script setup>
-import API from '../../services/api'
-import { useRouter } from 'vue-router'
-import { reactive, ref } from 'vue'
-import {
-    EnvelopeIcon,
-    LockClosedIcon,
-    EyeIcon,
-    EyeSlashIcon,
-    ArrowRightIcon
-} from '@heroicons/vue/24/outline'
-
-const router = useRouter()
-
-const selectedRole = ref('Doctor')
-const showPassword = ref(false)
-
-const userDetails = reactive({
-    email: '',
-    password: '',
-})
-
-const handleLogin = async () => {
-    try {
-        const response = await API.post("/auth/login", {
-            email: userDetails.email,
-            password: userDetails.password
-        })
-
-        const token = response.data.token
-
-        localStorage.setItem("token", token)
-
-        alert("Login Successful")
-
-        router.push("/") 
-
-    } catch (error) {
-        alert("Invalid Email or Password ")
-        console.error(error)
-    }
-}
-
-</script>

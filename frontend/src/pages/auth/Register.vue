@@ -1,3 +1,65 @@
+<script setup>
+import API from '../../services/api'
+import { ref } from 'vue'
+import {useRouter} from 'vue-router'
+import { registerAPI } from '../../services/auth'
+
+import {
+    UserIcon, CalendarIcon, PhoneIcon, EnvelopeIcon,
+    LockClosedIcon, EyeIcon, EyeSlashIcon, UserPlusIcon
+} from '@heroicons/vue/24/outline'
+
+const router = useRouter()
+
+const isChecked = ref(false)
+const showPassword = ref(false)
+const loading = ref(false)
+
+const formData = ref({
+    name: '',
+    role: '',
+    gender: '',
+    mobile: '',
+    email: '',
+    password: ''
+})
+
+
+const handleSubmit = async () => {
+
+    if (!formData.value.name || !formData.value.gender || !formData.value.mobile || !formData.value.email || !formData.value.password) {
+        alert('Please fill in all required fields.')
+        return
+    }
+
+    if (!isChecked.value) {
+        alert('You must agree to the Terms of Service and Privacy Policy to register.')
+        return
+    }
+    try{
+        loading.value = true
+        const data = await registerAPI(formData.value);
+        alert("Registration Successful")
+        router.push("/auth/login")
+    }catch(error){
+        alert(error.message);
+        console.error(error)
+    }finally{
+        loading.value = false
+        formData.value = {
+            name: '',
+            role: '',
+            gender: '',
+            mobile: '',
+            email: '',
+            password: ''    
+        }
+    }
+    
+    console.log('Form submitted:', formData.value)
+}
+</script>
+
 <template>
     <div class="min-h-screen min-w-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
         <div class=" bg-white rounded-4xl shadow-2xl shadow-slate-200/50 p-8 md:p-12">
@@ -14,7 +76,7 @@
                     <label class="block text-sm font-bold text-slate-700">Full Legal Name</label>
                     <div class="relative">
                         <UserIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input v-model="formData.fullName" type="text" placeholder="Johnathan Doe"
+                        <input v-model="formData.name" type="text" placeholder="Johnathan Doe"
                             class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                     </div>
                 </div>
@@ -26,21 +88,21 @@
                         <div class="flex items-center gap-6 px-4">
 
                             <div class="flex items-center gap-2">
-                                <input v-model="formData.role" type="radio" name="role" id="doctor" value="Doctor" />
+                                <input v-model="formData.role" type="radio" name="role" id="doctor" value="doctor" />
                                 <label for="doctor" class="text-sm font-bold text-slate-700">
                                     Doctor
                                 </label>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <input v-model="formData.role" type="radio" name="role" id="patient" value="Patient" />
+                                <input v-model="formData.role" type="radio" name="role" id="patient" value="patient" />
                                 <label for="patient" class="text-sm font-bold text-slate-700">
                                     Patient
                                 </label>
                             </div>
 
                             <div class="flex items-center gap-2">
-                                <input v-model="formData.role" type="radio" name="role" id="admin" value="Admin" />
+                                <input v-model="formData.role" type="radio" name="role" id="admin" value="admin" />
                                 <label for="admin" class="text-sm font-bold text-slate-700">
                                     Admin
                                 </label>
@@ -65,7 +127,7 @@
                         <label class="block text-sm font-bold text-slate-700">Phone Number</label>
                         <div class="relative">
                             <PhoneIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input v-model="formData.phone" type="tel" placeholder="XXX-XXX-XXXX"
+                            <input v-model="formData.mobile" type="tel" placeholder="XXX-XXX-XXXX"
                                 class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
                         </div>
                     </div>
@@ -105,7 +167,7 @@
 
                 <button
                     class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                    Create My Account
+                    {{ loading ? 'Registering...' : 'Create Account' }}
                     <UserPlusIcon class="w-5 h-5" />
                 </button>
             </form>
@@ -117,58 +179,3 @@
     </div>
 </template>
 
-<script setup>
-import API from '../../services/api'
-import { ref } from 'vue'
-import {useRouter} from 'vue-router'
-
-import {
-    UserIcon, CalendarIcon, PhoneIcon, EnvelopeIcon,
-    LockClosedIcon, EyeIcon, EyeSlashIcon, UserPlusIcon
-} from '@heroicons/vue/24/outline'
-
-const router = useRouter()
-
-const isChecked = ref(false)
-const showPassword = ref(false)
-
-const formData = ref({
-    fullName: '',
-    role: '',
-    gender: '',
-    phone: '',
-    email: '',
-    password: ''
-})
-
-
-const handleSubmit() => {
-
-    if (!formData.value.fullName || !formData.value.dob || !formData.value.gender || !formData.value.phone || !formData.value.email || !formData.value.password) {
-        alert('Please fill in all required fields.')
-        return
-    }
-
-    if (!isChecked.value) {
-        alert('You must agree to the Terms of Service and Privacy Policy to register.')
-        return
-    }
-
-    try{
-        await API.post("auth/register",{
-            name: formData.value.fullName,
-            email: formData.value.email,
-            password: formData.value.password
-        })
-
-        alert("Registration Successful")
-        router.push("/login")
-    }
-    catch{
-        alert("Registration Failed)
-        console.error(error)
-    }
-    
-    console.log('Form submitted:', formData.value)
-}
-</script>

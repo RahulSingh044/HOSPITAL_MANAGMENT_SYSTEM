@@ -24,10 +24,8 @@ const routes = [
             redirect: "/auth/login"
             }
         ]
-    }
-]
-
-  // Auth Pages
+    },
+    // Auth Pages
   {
     path: "/auth",
     component: () => import("../layout/AuthLayout.vue"),
@@ -96,7 +94,7 @@ const routes = [
       }
     ]
   }
-];
+]
 
 const router = createRouter({
   history: createWebHistory(),

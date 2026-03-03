@@ -1,3 +1,65 @@
+<script setup>
+const navLinks = ['Features', 'Solutions', 'Pricing', 'Resources'];
+import {
+    BriefcaseIcon,
+    UsersIcon,
+    BuildingOffice2Icon,
+    ChartBarIcon,
+    BeakerIcon,
+    UserCircleIcon,
+    ShareIcon, GlobeAltIcon, AtSymbolIcon
+} from '@heroicons/vue/24/outline'
+
+
+const stats = [
+    {
+        label: 'Active Doctors',
+        value: '500+',
+        growth: '12%',
+        icon: BriefcaseIcon
+    },
+    {
+        label: 'Happy Patients',
+        value: '10k+',
+        growth: '25%',
+        icon: UsersIcon
+    },
+    {
+        label: 'Hospitals Joined',
+        value: '120+',
+        growth: '8%',
+        icon: BuildingOffice2Icon
+    }
+]
+
+const features = [
+    {
+        title: 'Admin Dashboard',
+        description: 'Complete oversight of hospital resources, staffing, and real-time billing analytics.',
+        icon: ChartBarIcon,
+        list: ['Revenue Analytics', 'Staff Management', 'Resource Tracking']
+    },
+    {
+        title: 'Doctor Portal',
+        description: 'Manage electronic health records (EHR), daily consultation schedules, and patient history.',
+        icon: BeakerIcon,
+        list: ['Digital Prescriptions', 'EHR Management', 'Daily Rounds Planner']
+    },
+    {
+        title: 'Patient Experience',
+        description: 'Easy online appointment booking, digital prescriptions, and 24/7 access to medical records.',
+        icon: UserCircleIcon,
+        list: ['Instant Booking', 'Health Tracking', 'Digital Health Records']
+    }
+]
+
+const footerLinks = {
+    'Product': ['EHR Management', 'Billing Software', 'Telemedicine', 'Pharmacy Hub'],
+    'Company': ['About Us', 'Careers', 'Press Kit', 'Contact'],
+    'Support': ['Help Center', 'Security', 'API Documentation', 'System Status']
+}
+</script>
+
 <template>
     <div className="min-h-screen">
 
@@ -247,68 +309,6 @@
         </footer>
     </div>
 </template>
-
-<script setup>
-const navLinks = ['Features', 'Solutions', 'Pricing', 'Resources'];
-import {
-    BriefcaseIcon,
-    UsersIcon,
-    BuildingOffice2Icon,
-    ChartBarIcon,
-    BeakerIcon,
-    UserCircleIcon,
-    ShareIcon, GlobeAltIcon, AtSymbolIcon
-} from '@heroicons/vue/24/outline'
-
-
-const stats = [
-    {
-        label: 'Active Doctors',
-        value: '500+',
-        growth: '12%',
-        icon: BriefcaseIcon
-    },
-    {
-        label: 'Happy Patients',
-        value: '10k+',
-        growth: '25%',
-        icon: UsersIcon
-    },
-    {
-        label: 'Hospitals Joined',
-        value: '120+',
-        growth: '8%',
-        icon: BuildingOffice2Icon
-    }
-]
-
-const features = [
-    {
-        title: 'Admin Dashboard',
-        description: 'Complete oversight of hospital resources, staffing, and real-time billing analytics.',
-        icon: ChartBarIcon,
-        list: ['Revenue Analytics', 'Staff Management', 'Resource Tracking']
-    },
-    {
-        title: 'Doctor Portal',
-        description: 'Manage electronic health records (EHR), daily consultation schedules, and patient history.',
-        icon: BeakerIcon,
-        list: ['Digital Prescriptions', 'EHR Management', 'Daily Rounds Planner']
-    },
-    {
-        title: 'Patient Experience',
-        description: 'Easy online appointment booking, digital prescriptions, and 24/7 access to medical records.',
-        icon: UserCircleIcon,
-        list: ['Instant Booking', 'Health Tracking', 'Digital Health Records']
-    }
-]
-
-const footerLinks = {
-    'Product': ['EHR Management', 'Billing Software', 'Telemedicine', 'Pharmacy Hub'],
-    'Company': ['About Us', 'Careers', 'Press Kit', 'Contact'],
-    'Support': ['Help Center', 'Security', 'API Documentation', 'System Status']
-}
-</script>
 
 export default {
 name: "LandingPage"
