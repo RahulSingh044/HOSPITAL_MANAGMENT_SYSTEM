@@ -2,11 +2,30 @@ import { createRouter, createWebHistory } from "vue-router";
 import landing from "../pages/landing.vue";
 
 const routes = [
-  // Public Pages
-  {
-    path: "/",
-    component: landing,
-  },
+    // Public Pages
+    {
+        path: "/",
+        component: landing
+    },
+
+    // Auth Pages
+    {
+        path: "/auth",
+        component: () => import("../layout/AuthLayout.vue"),
+        children: [
+            {
+                path:"login", component: () => import("../pages/auth/Login.vue")
+            },
+            {
+                path:"register", component: () => import("../pages/auth/Register.vue")
+            },
+            {
+            path: "",
+            redirect: "/auth/login"
+            }
+        ]
+    }
+]
 
   // Auth Pages
   {

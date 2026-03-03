@@ -1,0 +1,9 @@
+python -c "import secrets; print(secrets.token_hex(32))"
+
+56b6dc73fc946c07b21a9805c667e68fd10a27403d3f50ef5fb42ff11d95430f
+
+a570d02ee23534ee4a49d1880a8752a3c03e55156cc6a4765f69bb078cb5e55c
+
+-------------------------------
+
+
