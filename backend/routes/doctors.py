@@ -1,32 +1,34 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
-from redis_client import redis_client
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils import role_required
+from db import mongo
 
-# zhi shi register blueprint, khong can url_prefix vi da co trong blueprint roi
 doctor_bp = Blueprint("doctors", __name__)
 
-@doctor_bp.route("/doctors", methods=["POST"])
+# Doctor profile
+@doctor_bp.route("/doctors/me", methods=["GET"])
 @jwt_required()
-def add_doctor():
-    data = request.json
-    doctor_id = redis_client.incr("doctor:id") # yuan zhi zeng jia shu qi, wei mei ge xin yue hui sheng cheng wei yi de shun xu ID
+@role_required("Doctor")
+def get_my_profile():
+    user_id = get_jwt_identity()
+    doctor = mongo.db.doctors.find_one({"user_id": user_id})
 
-    redis_client.hset(f"doctor:{doctor_id}", mapping={
-        "id": doctor_id,
-        "name": data["name"],
-        "specialization": data["specialization"]
-    })
+    if not doctor:
+        return jsonify({"error": "Doctor profile not found"}), 404
 
-    return jsonify({"message": "Doctor added"}), 201
+    doctor["_id"] = str(doctor["_id"])
+    return jsonify(doctor)
 
 
-@doctor_bp.route("/doctors", methods=["GET"])
+# Doctor appointments
+@doctor_bp.route("/doctors/my-appointments", methods=["GET"])
 @jwt_required()
-def get_doctors():
-    keys = redis_client.keys("doctor:*")
-    doctors = []
+@role_required("Doctor")
+def my_appointments():
+    user_id = get_jwt_identity()
+    appointments = list(mongo.db.appointments.find({"doctor_id": user_id}))
 
-    for key in keys:
-        doctors.append(redis_client.hgetall(key))
+    for a in appointments:
+        a["_id"] = str(a["_id"])
 
-    return jsonify(doctors)
+    return jsonify(appointments)

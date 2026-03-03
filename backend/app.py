@@ -1,33 +1,22 @@
 from flask import Flask
-
 from flask_jwt_extended import JWTManager
-
 from config import Config
-
 from auth import auth_bp
+from flask_cors import CORS
+from db import init_db
 
 from routes.patients import patient_bp
 from routes.doctors import doctor_bp
 from routes.appointments import appointment_bp
+from routes.admin import admin_bp
 
-from redis_client import redis_client
-
-from flask_cors import CORS
-
-print("Testing Redis connection...")
-print(redis_client.ping())
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-CORS(app, resources={
-    r"/auth/*": {
-        "origins": [
-            "http://localhost:5173"
-        ]
-    }
-})
+init_db(app)
 
+CORS(app)
 jwt = JWTManager(app)
 
 # zhi shi register blueprint, khong can url_prefix vi da co trong blueprint roi
@@ -35,10 +24,11 @@ app.register_blueprint(auth_bp, url_prefix="/auth")
 app.register_blueprint(patient_bp, url_prefix="/api")
 app.register_blueprint(doctor_bp, url_prefix="/api")
 app.register_blueprint(appointment_bp, url_prefix="/api")
+app.register_blueprint(admin_bp, url_prefix="/api")
 
 @app.route("/")
 def home():
     return {"message": "Hospital Backend Running 🚀"}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True , host="localhost" , port=5000)

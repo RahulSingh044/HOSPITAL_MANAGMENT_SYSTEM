@@ -1,34 +1,38 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
-from redis_client import redis_client
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils import role_required
+from db import mongo
 
-
-# zhi shi register blueprint, khong can url_prefix vi da co trong blueprint roi
 appointment_bp = Blueprint("appointments", __name__)
 
+# Patient books appointment
 @appointment_bp.route("/appointments", methods=["POST"])
 @jwt_required()
-def add_appointment():
+@role_required("Patient")
+def create_appointment():
+    user_id = get_jwt_identity()
     data = request.json
-    appointment_id = redis_client.incr("appointment:id") # yuan zhi zeng jia shu qi, wei mei ge xin yue hui sheng cheng wei yi de shun xu ID
 
-    redis_client.hset(f"appointment:{appointment_id}", mapping={
-        "id": appointment_id,
-        "patient_id": data["patient_id"],
+    appointment = {
+        "patient_id": user_id,
         "doctor_id": data["doctor_id"],
-        "date": data["date"]
-    })
+        "date": data["date"],
+        "status": "Scheduled"
+    }
 
-    return jsonify({"message": "Appointment created"}), 201
+    mongo.db.appointments.insert_one(appointment)
+
+    return jsonify({"message": "Appointment booked"}), 201
 
 
+# Admin view all appointments
 @appointment_bp.route("/appointments", methods=["GET"])
 @jwt_required()
-def get_appointments():
-    keys = redis_client.keys("appointment:[0-9]*") # kong keys = redis_client.keys("appointment:*") --- IGNORE --- 
-    appointments = []
+@role_required("Admin")
+def get_all_appointments():
+    appointments = list(mongo.db.appointments.find({}))
 
-    for key in keys:
-        appointments.append(redis_client.hgetall(key)) # hgetall se tra ve 1 dict, khong can chuyen doi nua
+    for a in appointments:
+        a["_id"] = str(a["_id"])
 
     return jsonify(appointments)
