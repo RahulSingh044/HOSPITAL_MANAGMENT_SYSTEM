@@ -4,3 +4,5 @@ redis
 FLask-CORS
 python-dotenv
 Werkzeug
+pymongo 
+flask-pymongo
