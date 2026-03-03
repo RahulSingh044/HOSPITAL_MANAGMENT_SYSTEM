@@ -13,7 +13,6 @@ const deactiveAcc = async(id) => {
     }
 }
 
-
 const profile = reactive({
   fullName: 'Dr. Sarah Smith',
   email: 'sarah.smith@example.com',
