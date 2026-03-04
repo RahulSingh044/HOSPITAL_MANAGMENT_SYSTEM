@@ -26,6 +26,8 @@ app.register_blueprint(doctor_bp, url_prefix="/api")
 app.register_blueprint(appointment_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api")
 
+print(app.url_map)
+
 @app.route("/")
 def home():
     return {"message": "Hospital Backend Running 🚀"}

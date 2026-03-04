@@ -5,80 +5,146 @@ from db import mongo
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route("/register", methods=["POST"])
-def register():
+
+# -----------------------------
+# Patient Register
+# -----------------------------
+@auth_bp.route("/register/patient", methods=["POST"])
+def register_patient():
+
     data = request.json
 
-    # Prevent role injection from frontend
-    role = "Patient"
-
-    if mongo.db.users.find_one({"email": data["email"]}):
+    if mongo.db.patients.find_one({"email": data["email"]}):
         return jsonify({"error": "Email already exists"}), 400
 
-    user = {
+    patient = {
         "name": data["name"],
-        "role": role,
         "gender": data["gender"],
         "mobile": data["mobile"],
         "email": data["email"],
         "password": generate_password_hash(data["password"])
     }
 
-    result = mongo.db.users.insert_one(user)
-
-    # Create patient profile linked to user
-    patient_profile = {
-        "user_id": str(result.inserted_id),
-        "name": data["name"],
-        "gender": data["gender"],
-        "mobile": data["mobile"]
-    }
-
-    mongo.db.patients.insert_one(patient_profile)
+    mongo.db.patients.insert_one(patient)
 
     return jsonify({"message": "Patient registered"}), 201
 
 
+# -----------------------------
+# Patient Register
+# -----------------------------
+@auth_bp.route("/register/bulk-patient", methods=["POST"])
+def register_bulk_patient():
 
-@auth_bp.route("/register/admin", methods=["POST"])
-def add_admin():
     data = request.json
-    
-    role = "Admin"
 
-    if mongo.db.users.find_one({"email": data["email"]}):
-        return jsonify({"error": "Email already exists"}), 400
+    users = []
 
-    user = {
+    for i in data:
+
+        if mongo.db.patients.find_one({"email": i["email"]}):
+            return jsonify({"error": "Email already exists"}), 400
+
+        patient = {
+            "name": i["name"],
+            "gender": i["gender"],
+            "mobile": i["mobile"],
+            "email": i["email"],
+            "password": generate_password_hash(i["password"])
+        }
+
+        users.append(patient)
+
+    mongo.db.patients.insert_many(users)
+
+    return jsonify({
+        "message": "Patients registered",
+        "count": len(patients)
+    }), 201
+
+
+# -----------------------------
+# Patient Login
+# -----------------------------
+@auth_bp.route("/login/patient", methods=["POST"])
+def login_patient():
+
+    data = request.json
+
+    user = mongo.db.patients.find_one({"email": data["email"]})
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not check_password_hash(user["password"], data["password"]):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = create_access_token(identity=str(user["_id"]), additional_claims={"role": "Patient"})
+
+    return jsonify({"token": token})
+
+
+# -----------------------------
+# Doctor Login
+# -----------------------------
+@auth_bp.route("/login/doctor", methods=["POST"])
+def login_doctor():
+
+    data = request.json
+
+    user = mongo.db.doctors.find_one({"email": data["email"]})
+
+    if not user:
+        return jsonify({"error": "Doctor not found"}), 404
+
+    if not check_password_hash(user["password"], data["password"]):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = create_access_token(identity=str(user["_id"]), additional_claims={"role": "Doctor"})
+
+    return jsonify({"token": token})
+
+
+# -----------------------------
+# TEMP ADMIN REGISTER
+# -----------------------------
+@auth_bp.route("/register/admin", methods=["POST"])
+def register_admin_temp():
+
+    data = request.json
+
+    if mongo.db.admins.find_one({"email": data["email"]}):
+        return jsonify({"error": "Admin already exists"}), 400
+
+    admin = {
         "name": data["name"],
-        "role": role,
         "email": data["email"],
         "password": generate_password_hash(data["password"])
     }
 
-    mongo.db.users.insert_one(user)
+    mongo.db.admins.insert_one(admin)
 
-    return jsonify({"message": "admin created"}) , 201
+    return jsonify({"message": "Admin created"}), 201
 
+# -----------------------------
+# ADMIN LOGIN
+# -----------------------------
+@auth_bp.route("/login/admin", methods=["POST"])
+def login_admin():
 
-@auth_bp.route("/login", methods=["POST"])
-def login():
     data = request.json
 
-    user = mongo.db.users.find_one({"email": data["email"]})
+    user = mongo.db.admins.find_one({"email": data["email"]})
 
     if not user:
-        return jsonify({"error": "Invalid credentials"}), 401
+        return jsonify({"error": "Admin not found"}), 404
 
     if not check_password_hash(user["password"], data["password"]):
         return jsonify({"error": "Invalid credentials"}), 401
 
     token = create_access_token(
         identity=str(user["_id"]),
-        additional_claims={"role": user["role"]}
+        additional_claims={"role": "Admin"}
     )
 
-    return jsonify({
-        "token": token,
-        "role": user["role"]
-    })
+    return jsonify({"token": token})
