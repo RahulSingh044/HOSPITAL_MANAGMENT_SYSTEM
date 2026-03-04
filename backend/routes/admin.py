@@ -58,7 +58,7 @@ def add_doctor():
     return jsonify({"message": "Doctor created successfully"}), 201
 
 
-@admin_bp.route("/admin/add-doctor", methods=["POST"])
+@admin_bp.route("/admin/bulk-add-doctor", methods=["POST"])
 @jwt_required()
 @role_required("Admin")
 def bulk_add_doctor():
