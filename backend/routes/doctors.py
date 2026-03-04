@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils import role_required
+from bson import ObjectId
 from db import mongo
 
 doctor_bp = Blueprint("doctors", __name__)
@@ -11,7 +12,7 @@ doctor_bp = Blueprint("doctors", __name__)
 @role_required("Doctor")
 def get_my_profile():
     user_id = get_jwt_identity()
-    doctor = mongo.db.doctors.find_one({"user_id": user_id})
+    doctor = mongo.db.doctors.find_one({"_id": ObjectId(user_id)})
 
     if not doctor:
         return jsonify({"error": "Doctor profile not found"}), 404

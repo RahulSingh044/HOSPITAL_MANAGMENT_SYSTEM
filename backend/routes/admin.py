@@ -34,36 +34,59 @@ def add_doctor():
 
     data = request.json
 
-    if mongo.db.users.find_one({"email": data["email"]}):
+    if mongo.db.doctors.find_one({"email": data["email"]}):
         return jsonify({"error": "Email already exists"}), 400
 
-    client = mongo.cx
+    doctor = {
+        "name": data["name"],
+        "gender": data["gender"],
+        "mobile": data["mobile"],
+        "email": data["email"],
+        "password": generate_password_hash(data["password"]),
+        "specialization": data["specialization"],
+        "experience": data.get("experience", 0),
+        "schedule": data.get("schedule", ""),
+        "status": "Active"
+    }
 
-    with client.start_session() as session:
-        with session.start_transaction():
+    mongo.db.doctors.insert_one(doctor)
 
-            user = {
-                "name": data["name"],
-                "role": "Doctor",
-                "gender": data["gender"],
-                "mobile": data["mobile"],
-                "email": data["email"],
-                "password": generate_password_hash(data["password"])
-            }
+    return jsonify({"message": "Doctor created successfully"}), 201
 
-            user_result = mongo.db.users.insert_one(user, session=session)
 
-            doctor_profile = {
-                "user_id": user_result.inserted_id,
-                "specialization": data["specialization"],
-                "experience": data.get("experience", 0),
-                "schedule": data.get("schedule", ""),
+@admin_bp.route("/admin/bulk-add-doctor", methods=["POST"])
+@jwt_required()
+@role_required("Admin")
+def bulk_add_doctor():
+
+    data = request.json
+
+    users = []
+
+    for i in data:
+            if mongo.db.doctors.find_one({"email": i["email"]}):
+                return jsonify({"error": "Email already exists"}), 400
+
+            doctor = {
+                "name": i["name"],
+                "gender": i["gender"],
+                "mobile": i["mobile"],
+                "email": i["email"],
+                "password": generate_password_hash(i["password"]),
+                "specialization": i["specialization"],
+                "experience": i.get("experience", 0),
+                "schedule": i.get("schedule", ""),
                 "status": "Active"
             }
 
-            mongo.db.doctors.insert_one(doctor_profile, session=session)
+            users.append(doctor)
 
-    return jsonify({"message": "Doctor created successfully"}), 201
+    mongo.db.doctors.insert_many(users)
+
+    return jsonify({
+        "message": "Doctors registered",
+        "count": len(doctors)
+    }), 201
 
 
 # -----------------------------
@@ -174,23 +197,13 @@ def get_one_doctor(doctor_id):
 
 
 
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
-from bson import ObjectId
-from utils import role_required
-from db import mongo
-import math
-
-admin_bp = Blueprint("admin", __name__)
-
-
 # --------------------------------------------------
 # Filters
 # --------------------------------------------------
 @admin_bp.route("/admin/doctors", methods=["GET"])
 @jwt_required()
 @role_required("Admin")
-def get_all_doctors():
+def filter():
 
 
     page = int(request.args.get("page", 1))
