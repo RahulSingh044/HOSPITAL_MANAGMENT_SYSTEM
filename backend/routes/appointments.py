@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils import role_required
 from db import mongo
 from bson import ObjectId
+from datetime import datetime
 
 appointment_bp = Blueprint("appointments", __name__)
 
@@ -19,13 +20,18 @@ def create_appointment():
     data = request.json
 
     appointment = {
-        "patient_id": ObjectId(patient_id),
+        "patient_id": ObjectId(data["patient_id"]),
         "doctor_id": ObjectId(data["doctor_id"]),
-        "date": data["date"],
+        "date": datetime.strptime(data["date"], "%Y-%m-%d"),
         "status": "Scheduled"
     }
 
     mongo.db.appointments.insert_one(appointment)
+
+    mongo.db.patients.update_one(
+        {"_id": ObjectId(patient_id)},
+        {"$set": {"last_visit": appointment["date"]}}
+    )
 
     return jsonify({"message": "Appointment booked"}), 201
 
@@ -51,27 +57,34 @@ def get_all_appointments():
 # ---------------------------------
 # TEMP BULK APPOINTMENT INSERT
 # ---------------------------------
+from datetime import datetime
+from bson import ObjectId
+
 @appointment_bp.route("/appointments/bulk", methods=["POST"])
 def bulk_appointments():
 
     data = request.json
-
     appointments = []
 
     for item in data:
 
+        date = datetime.strptime(item["date"], "%Y-%m-%dT%H:%M:%S")
+
         appointment = {
             "patient_id": ObjectId(item["patient_id"]),
             "doctor_id": ObjectId(item["doctor_id"]),
-            "date": item["date"],
-            "status": item.get("status", "Scheduled")
+            "date": date,
+            "status": "Scheduled"
         }
 
         appointments.append(appointment)
 
+        # update patient's last visit
+        mongo.db.patients.update_one(
+            {"_id": ObjectId(item["patient_id"])},
+            {"$set": {"last_visit": date}}
+        )
+
     mongo.db.appointments.insert_many(appointments)
 
-    return jsonify({
-        "message": "Bulk appointments created",
-        "count": len(appointments)
-    }), 201
+    return jsonify({"message": "Bulk appointments created"}), 201

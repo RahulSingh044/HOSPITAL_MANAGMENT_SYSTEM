@@ -14,3 +14,21 @@ def role_required(required_role):
             return fn(*args, **kwargs)
         return decorator
     return wrapper
+
+
+from db import mongo
+from pymongo import ReturnDocument
+
+def get_next_medical_id():
+
+    counter = mongo.db.counters.find_one_and_update(
+        {"_id": "patient_id"},
+        {"$inc": {"seq": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+
+    num = counter["seq"]
+
+    return f"MR-{str(num).zfill(5)}"
+    

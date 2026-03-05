@@ -33,3 +33,18 @@ def my_appointments():
         a["_id"] = str(a["_id"])
 
     return jsonify(appointments)
+
+
+@doctor_bp.route("/patients/<patient_id>/condition", methods=["PUT"])
+@jwt_required()
+@role_required("Doctor")
+def update_condition(patient_id):
+
+    data = request.json
+
+    mongo.db.patients.update_one(
+        {"_id": ObjectId(patient_id)},
+        {"$set": {"condition": data["condition"]}}
+    )
+
+    return jsonify({"message": "Condition updated"})

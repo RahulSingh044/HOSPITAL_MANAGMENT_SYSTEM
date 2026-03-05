@@ -2,13 +2,15 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import mongo
+from utils import get_next_medical_id
+from datetime import datetime
 
 auth_bp = Blueprint("auth", __name__)
-
 
 # -----------------------------
 # Patient Register
 # -----------------------------
+
 @auth_bp.route("/register/patient", methods=["POST"])
 def register_patient():
 
@@ -17,17 +19,28 @@ def register_patient():
     if mongo.db.patients.find_one({"email": data["email"]}):
         return jsonify({"error": "Email already exists"}), 400
 
+    medical_id = get_next_medical_id()
+
     patient = {
+        "medical_id": medical_id,
         "name": data["name"],
+        "age": data["age"], 
         "gender": data["gender"],
         "mobile": data["mobile"],
+        "admission_date": datetime.utcnow(),
+        "condition": "Observing",
+        "last_visit": None,
         "email": data["email"],
         "password": generate_password_hash(data["password"])
     }
+    
 
     mongo.db.patients.insert_one(patient)
 
-    return jsonify({"message": "Patient registered"}), 201
+    return jsonify({
+        "message": "Patient registered",
+        "medical_id": medical_id
+    }), 201
 
 
 # -----------------------------
