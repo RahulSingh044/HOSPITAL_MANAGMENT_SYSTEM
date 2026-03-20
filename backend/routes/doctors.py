@@ -6,7 +6,7 @@ from db import mongo
 from datetime import datetime
 
 doctor_bp = Blueprint("doctors", __name__)
-
+ 
 # Doctor profile
 @doctor_bp.route("/doctors/me", methods=["GET"])
 @jwt_required()
