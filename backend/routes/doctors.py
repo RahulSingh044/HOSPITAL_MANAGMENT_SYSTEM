@@ -83,7 +83,7 @@ def doctor_dashboard():
     total_patients = Patient.query.count()
 
     # 3. Pending reports count
-    pending_reports = MedicalRecord.query.filter_by(doctor_id=doctor_id, status="Pending").count()
+    pending_reports = 0
 
     # 4. Recent patients
     recent = Patient.query.order_by(Patient.id.desc()).limit(5).all()
@@ -230,6 +230,32 @@ def patient_profile(patient_id):
         patient = Patient.query.get(int(patient_id))
     if not patient:
         return jsonify({"error": "Patient not found"}), 404
+
+    bp_vital = Vital.query.filter_by(patient_id=patient.id, label="Blood Pressure").order_by(Vital.id.desc()).first()
+    hr_vital = Vital.query.filter_by(patient_id=patient.id, label="Heart Rate").order_by(Vital.id.desc()).first()
+    
+    blood_pressure_str = f"{bp_vital.value} {bp_vital.unit or ''}".strip() if bp_vital else None
+    heart_rate_str = f"{hr_vital.value} {hr_vital.unit or ''}".strip() if hr_vital else None
+    
+    appointments = Appointment.query.filter_by(patient_id=patient.id).all()
+    appt_ids = [apt.id for apt in appointments]
+    prescriptions = []
+    if appt_ids:
+        prescs = Prescription.query.filter(Prescription.appointment_id.in_(appt_ids)).order_by(Prescription.id.desc()).all()
+        for pr in prescs:
+            prescriptions.append({
+                "name": pr.name,
+                "dosage": pr.dosage,
+                "frequency": pr.frequency,
+                "duration": pr.duration
+            })
+            
+    recent_records = MedicalRecord.query.filter_by(patient_id=patient.id).order_by(MedicalRecord.id.desc()).limit(2).all()
+    medical_records = [{
+        "date": mr.date,
+        "title": mr.title,
+        "description": mr.description
+    } for mr in recent_records]
         
     return jsonify({
         "_id": str(patient.id),
@@ -237,14 +263,15 @@ def patient_profile(patient_id):
         "name": patient.name,
         "age": patient.age,
         "gender": patient.gender,
-        "mobile": patient.mobile,
-        "email": patient.email,
         "condition": patient.condition,
         "last_visit": patient.last_visit.isoformat() if patient.last_visit else None,
         "admission_date": patient.admission_date.isoformat() if patient.admission_date else None,
         "dob": patient.dob,
-        "address": patient.address,
-        "preferences": patient.preferences
+        "blood_type": patient.blood_type,
+        "blood_pressure": blood_pressure_str,
+        "heart_rate": heart_rate_str,
+        "prescriptions": prescriptions,
+        "recent_medical_records": medical_records
     })
 
  
@@ -343,3 +370,38 @@ def add_vital(apt_id):
     db.session.add(v)
     db.session.commit()
     return jsonify({"message": "Vital added successfully"}), 201
+
+
+
+
+# -----------------------------
+# Add Medical Record
+# -----------------------------
+@doctor_bp.route("/doctors/patient/<patient_id>/medical-record", methods=["POST"])
+@jwt_required()
+@role_required("Doctor")
+def add_medical_record(patient_id):
+    doctor_id = int(get_jwt_identity())
+    doctor = Doctor.query.get(doctor_id)
+
+    if patient_id.startswith("MR-"):
+        patient = Patient.query.filter_by(medical_id=patient_id).first()
+    else:
+        patient = Patient.query.get(int(patient_id))
+        
+    if not patient:
+        return jsonify({"error": "Patient not found"}), 404
+        
+    data = request.json
+    record = MedicalRecord(
+        patient_id=patient.id,
+        doctor_id=doctor.id,
+        type=data.get("type", "General Note"),
+        date=data.get("date", datetime.utcnow().strftime("%Y-%m-%d")),
+        title=data.get("title", f"{data.get('type', 'Medical')} Record"),
+        description=data.get("description", ""),
+        provider=f"Dr. {doctor.name}" if not doctor.name.startswith("Dr.") else doctor.name
+    )
+    db.session.add(record)
+    db.session.commit()
+    return jsonify({"message": "Medical record added successfully", "record_id": record.id}), 201
