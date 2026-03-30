@@ -50,6 +50,7 @@ class Patient(db.Model):
     last_visit = db.Column(db.DateTime, nullable=True)
     dob = db.Column(db.String(50), default="")
     address = db.Column(db.String(255), default="")
+    blood_type = db.Column(db.String(20), default="")
     preferences = db.Column(db.Text, default="[]")
 
 class Appointment(db.Model):
@@ -58,7 +59,6 @@ class Appointment(db.Model):
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'))
     date = db.Column(db.DateTime)
     type = db.Column(db.String(100), default="Consultation")
-    location = db.Column(db.String(255), default="Main Hospital")
     status = db.Column(db.String(50), default="Pending")
     diagnosisTitle = db.Column(db.String(255), default="Pending Assessment")
     diagnosisCode = db.Column(db.String(50), default="-")
@@ -73,15 +73,9 @@ class MedicalRecord(db.Model):
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=True)
     type = db.Column(db.String(100))
     date = db.Column(db.String(50))
-    time = db.Column(db.String(50))
     title = db.Column(db.String(200))
     description = db.Column(db.Text)
     provider = db.Column(db.String(255))
-    status = db.Column(db.String(50))
-    icon = db.Column(db.String(50))
-    markerClass = db.Column(db.String(100))
-    tagClass = db.Column(db.String(100))
-    actionLabel = db.Column(db.String(50))
 
 class Prescription(db.Model):
     id = db.Column(db.Integer, primary_key=True)

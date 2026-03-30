@@ -35,7 +35,8 @@ def get_my_profile():
         "email": patient.email,
         "phone": patient.mobile,
         "dob": patient.dob,
-        "address": patient.address
+        "address": patient.address,
+        "blood_type": patient.blood_type
     }
     
     return jsonify({"profile": profile, "preferences": preferences})
@@ -59,6 +60,7 @@ def update_patient():
     if "phone" in data: patient.mobile = data["phone"]
     if "dob" in data: patient.dob = data["dob"]
     if "address" in data: patient.address = data["address"]
+    if "blood_type" in data: patient.blood_type = data["blood_type"]
     
     if not any(k in data for k in ["fullName", "phone", "dob", "address"]):
         if "name" in data: patient.name = data["name"]
@@ -277,7 +279,6 @@ def get_my_appointments():
                 "specialty": spec,
                 "type": apt.type,
                 "time": dt.strftime("%I:%M %p"),
-                "location": apt.location,
                 "status": status.capitalize(),
                 "statusClass": status_class
              })

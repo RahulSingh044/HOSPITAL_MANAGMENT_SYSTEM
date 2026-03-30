@@ -34,7 +34,6 @@ def create_appointment():
         doctor_id=int(data["doctor_id"]),
         date=date_obj,
         type=data.get("type", "Consultation"),
-        location=data.get("location", "Main Hospital"),
         status="Pending",
         diagnosisTitle="Pending Assessment",
         diagnosisCode="-",
