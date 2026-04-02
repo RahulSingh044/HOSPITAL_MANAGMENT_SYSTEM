@@ -60,3 +60,21 @@ def get_next_doctor_id():
     db.session.commit()
     
     return f"DOC-{str(counter.seq).zfill(5)}"
+
+
+
+
+# -------------------------
+# ID Generator of Appointment
+# -------------------------
+def get_next_appointment_id():
+    counter = Counter.query.filter_by(id="appointment_id").first()
+    if not counter:
+        counter = Counter(id="appointment_id", seq=0)
+        db.session.add(counter)
+        db.session.commit()
+        
+    counter.seq += 1
+    db.session.commit()
+    
+    return f"APT-{str(counter.seq).zfill(5)}"

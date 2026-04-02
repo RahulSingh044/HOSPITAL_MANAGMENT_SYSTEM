@@ -97,7 +97,7 @@ def patient_dashboard():
             mins = (secs % 3600) // 60
             
         next_appointment = {
-            "id": str(next_apt.id),
+            "id": next_apt.appointment_id or str(next_apt.id),
             "days": str(days).zfill(2),
             "hours": str(hours).zfill(2),
             "mins": str(mins).zfill(2),
@@ -261,7 +261,7 @@ def get_my_appointments():
         is_past = dt < now
         if is_past:
              past.append({
-                "id": str(apt.id),
+                "id": apt.appointment_id or str(apt.id),
                 "date": dt.strftime("%b %d, %Y"),
                 "doctor": doc_name,
                 "department": spec,
@@ -272,7 +272,7 @@ def get_my_appointments():
              status = apt.status if apt.status else "Confirmed"
              status_class = "bg-orange-100 text-orange-600" if status.lower() == "pending" else "bg-green-100 text-green-600"
              upcoming.append({
-                "id": str(apt.id),
+                "id": apt.appointment_id or str(apt.id),
                 "month": dt.strftime("%b").upper(),
                 "day": dt.strftime("%d"),
                 "doctor": doc_name,
@@ -304,7 +304,10 @@ def get_my_appointments():
 @jwt_required()
 @role_required("Patient")
 def appointment_details(apt_id):
-    apt = Appointment.query.get(int(apt_id))
+    if str(apt_id).startswith("APT-"):
+        apt = Appointment.query.filter_by(appointment_id=apt_id).first()
+    else:
+        apt = Appointment.query.get(int(apt_id))
     if not apt: return jsonify({"error": "Appointment not found"}), 404
     
     dt = apt.date
@@ -368,15 +371,9 @@ def medical_history():
             "id": str(r.id),
             "type": r.type,
             "date": r.date,
-            "time": r.time,
             "title": r.title,
             "description": r.description,
-            "provider": r.provider,
-            "status": r.status,
-            "icon": r.icon,
-            "markerClass": r.markerClass,
-            "tagClass": r.tagClass,
-            "actionLabel": r.actionLabel
+            "provider": r.provider
         })
         
     global_total = MedicalRecord.query.filter_by(patient_id=user_id).count()

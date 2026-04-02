@@ -55,6 +55,7 @@ class Patient(db.Model):
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    appointment_id = db.Column(db.String(50), unique=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'))
     date = db.Column(db.DateTime)
@@ -63,7 +64,6 @@ class Appointment(db.Model):
     diagnosisTitle = db.Column(db.String(255), default="Pending Assessment")
     diagnosisCode = db.Column(db.String(50), default="-")
     diagnosisDesc = db.Column(db.Text, default="Awaiting official notes.")
-
     patient = db.relationship('Patient', backref='appointments')
     doctor = db.relationship('Doctor', backref='appointments')
 
