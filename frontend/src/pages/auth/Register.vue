@@ -1,16 +1,13 @@
 <script setup>
-import API from '../../services/api'
 import { ref } from 'vue'
-import {useRouter} from 'vue-router'
+import { useRouter } from 'vue-router'
 import { registerAPI } from '../../services/auth'
-
 import {
-    UserIcon, CalendarIcon, PhoneIcon, EnvelopeIcon,
-    LockClosedIcon, EyeIcon, EyeSlashIcon, UserPlusIcon
+    UserIcon, PhoneIcon, EnvelopeIcon,
+    LockClosedIcon, EyeIcon, EyeSlashIcon, UserPlusIcon, ChevronDownIcon
 } from '@heroicons/vue/24/outline'
 
 const router = useRouter()
-
 const isChecked = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
@@ -23,129 +20,112 @@ const formData = ref({
     password: ''
 })
 
-
 const handleSubmit = async () => {
-
-    if (!formData.value.name || !formData.value.gender || !formData.value.mobile || !formData.value.email || !formData.value.password) {
+    // Basic validation
+    const { name, gender, mobile, email, password } = formData.value;
+    if (!name || !gender || !mobile || !email || !password) {
         alert('Please fill in all required fields.')
         return
     }
-
     if (!isChecked.value) {
-        alert('You must agree to the Terms of Service and Privacy Policy to register.')
+        alert('You must agree to the Terms of Service to register.')
         return
     }
-    try{
+
+    try {
         loading.value = true
-        const data = await registerAPI(formData.value);
+        await registerAPI(formData.value);
         alert("Registration Successful")
-        router.push("/auth/login")
-    }catch(error){
-        alert(error.message);
-        console.error(error)
-    }finally{
+        router.push("/auth")
+    } catch(error) {
+        alert(error.message || "Registration failed");
+    } finally {
         loading.value = false
-        formData.value = {
-            name: '',
-            gender: '',
-            mobile: '',
-            email: '',
-            password: ''    
-        }
     }
-    
-    console.log('Form submitted:', formData.value)
 }
 </script>
 
 <template>
-    <div class="min-h-screen min-w-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-        <div class=" bg-white rounded-4xl shadow-2xl shadow-slate-200/50 p-8 md:p-12">
-
-            <header class="text-center mb-10">
-                <h1 class="text-3xl font-extrabold text-slate-900 mb-2">Patient Registration</h1>
-                <p class="text-slate-500 text-sm">Create your secure medical account to access digital healthcare
-                    services.</p>
+    <div class="auth-wrapper">
+        <div class="auth-card register-wide">
+            <header class="auth-header">
+                <h1 class="auth-title">Patient Registration</h1>
+                <p class="auth-subtitle">Create your secure medical account to access digital healthcare services.</p>
             </header>
 
-            <form @submit.prevent="handleSubmit" class="space-y-6">
-
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-700">Full Legal Name</label>
-                    <div class="relative">
-                        <UserIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input v-model="formData.name" type="text" placeholder="Johnathan Doe"
-                            class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+            <form @submit.prevent="handleSubmit" class="auth-form">
+                <div class="form-group">
+                    <label class="label-text">Full Legal Name</label>
+                    <div class="relative-input">
+                        <UserIcon class="input-icon-left" />
+                        <input v-model="formData.name" type="text" placeholder="Johnathan Doe" class="auth-input" />
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 col-span-2 md:grid-cols-1 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-bold text-slate-700">Gender</label>
-                        <select v-model="formData.gender"
-                            class="w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                <div class="form-group">
+                    <label class="label-text">Gender</label>
+                    <div class="relative-input">
+                        <select v-model="formData.gender" class="auth-input select-custom">
                             <option value="" disabled>Select Gender</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
                             <option value="other">Other</option>
                         </select>
+                        <ChevronDownIcon class="input-icon-right pointer-events-none" />
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-2">
-                        <label class="block text-sm font-bold text-slate-700">Phone Number</label>
-                        <div class="relative">
-                            <PhoneIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input v-model="formData.mobile" type="tel" placeholder="XXX-XXX-XXXX"
-                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                <div class="auth-input-grid">
+                    <div class="form-group">
+                        <label class="label-text">Phone Number</label>
+                        <div class="relative-input">
+                            <PhoneIcon class="input-icon-left" />
+                            <input v-model="formData.mobile" type="tel" placeholder="XXX-XXX-XXXX" class="auth-input" />
                         </div>
                     </div>
-                    <div class="space-y-2">
-                        <label class="block text-sm font-bold text-slate-700">Email Address</label>
-                        <div class="relative">
-                            <EnvelopeIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input v-model="formData.email" type="email" placeholder="john@example.com"
-                                class="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <div class="form-group">
+                        <label class="label-text">Email Address</label>
+                        <div class="relative-input">
+                            <EnvelopeIcon class="input-icon-left" />
+                            <input v-model="formData.email" type="email" placeholder="john@example.com" class="auth-input" />
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="block text-sm font-bold text-slate-700">Create Password</label>
-                    <div class="relative">
-                        <LockClosedIcon class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input v-model="formData.password" :type="showPassword ? 'text' : 'password'"
-                            placeholder="At least 8 characters"
-                            class="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" />
-                        <button type="button" @click="showPassword = !showPassword"
-                            class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                            <EyeIcon v-if="!showPassword" class="w-5 h-5" />
-                            <EyeSlashIcon v-else class="w-5 h-5" />
+                <div class="form-group">
+                    <label class="label-text">Create Password</label>
+                    <div class="relative-input">
+                        <LockClosedIcon class="input-icon-left" />
+                        <input v-model="formData.password" :type="showPassword ? 'text' : 'password'" 
+                               placeholder="At least 8 characters" class="auth-input password-input" />
+                        <button type="button" @click="showPassword = !showPassword" class="password-toggle">
+                            <EyeIcon v-if="!showPassword" class="icon-sm" />
+                            <EyeSlashIcon v-else class="icon-sm" />
                         </button>
                     </div>
                 </div>
 
-                <label class="flex items-start gap-3 cursor-pointer group py-2">
-                    <input type="checkbox" v-model="isChecked"
-                        class="mt-1 w-5 h-5 rounded border-slate-200 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                    <span class="text-xs text-slate-500 leading-relaxed group-hover:text-slate-700">
-                        I agree to the <a href="#" class="text-blue-600 font-bold">Terms of Service</a> and <a href="#"
-                            class="text-blue-600 font-bold">Privacy Policy</a>, including HIPAA data handling protocols.
+                <label class="consent-container">
+                    <input type="checkbox" v-model="isChecked" class="hidden-checkbox" />
+                    <div class="custom-checkbox" :class="{ checked: isChecked }"></div>
+                    <span class="consent-text">
+                        I agree to the <a href="#" class="auth-link">Terms of Service</a> and 
+                        <a href="#" class="auth-link">Privacy Policy</a>, including HIPAA data handling.
                     </span>
                 </label>
 
-                <button
-                    class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-xl shadow-blue-200 flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
-                    {{ loading ? 'Registering...' : 'Create Account' }}
-                    <UserPlusIcon class="w-5 h-5" />
+                <button type="submit" class="btn-primary-lg" :disabled="loading">
+                    <span>{{ loading ? 'Registering...' : 'Create Account' }}</span>
+                    <UserPlusIcon v-if="!loading" class="icon-sm" />
                 </button>
             </form>
 
-            <p class="text-center mt-8 text-sm font-medium text-slate-500">
-                Already have an account? <router-link to="/auth" class="text-blue-600 font-bold">Sign in here</router-link>
+            <p class="auth-footer-text">
+                Already have an account? 
+                <router-link to="/auth" class="auth-link">Sign in here</router-link>
             </p>
         </div>
     </div>
 </template>
 
+<style src="../../styles/auth.css" scoped></style>

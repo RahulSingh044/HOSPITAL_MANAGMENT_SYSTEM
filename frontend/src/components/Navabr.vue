@@ -1,107 +1,74 @@
 <script setup>
-import { ref } from "vue"
-import {
-  User,
-  Plus
-} from "lucide-vue-next";
-import { useRoute } from "vue-router";
-import { computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, computed } from "vue"
+import { useRouter} from "vue-router";
+import { User, Plus } from "lucide-vue-next";
 import AddDoctorModal from "./AddDoctorModal.vue";
+import { useUserStore } from '../store/userStore';
 
 const addDoctor = ref(false)
-
-const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
 
-const pathSegments = computed(() =>
-  route.path.split("/").filter(Boolean)
-);
-
+const pathSegments = computed(() => router.currentRoute.value.path.split("/").filter(Boolean));
 const role = computed(() => pathSegments.value[0]);
 
 const currentPath = computed(() => {
   const segments = pathSegments.value;  
-
   if (
     segments.length === 0 ||
-    segments[segments.length - 1] === "admin" ||
-    segments[segments.length - 1] === "doctor" ||
-    segments[segments.length - 1] === "patient"
+    ['admin', 'doctor', 'patient'].includes(segments[segments.length - 1])
   ) {
     return "Dashboard";
   }
-
   return segments[segments.length - 1]
     .replace(/-/g, " ")
     .replace(/\b\w/g, char => char.toUpperCase());
 });
 
 const redirectToProfile = () => {
-  if(role.value === "patient") {
-    router.push("/patient/profile");
-  } else {
-    return;
-  }
-}
-
+  if(role.value === "patient") router.push("/patient/profile");
+};
 </script>
 
 <template>
-  <nav class="h-20 w-full bg-white border-b border-gray-100 flex items-center justify-between px-8">
-
-    <div class="shrink-0">
-      <h1 class="font-bold text-xl text-slate-800 tracking-tight">{{ currentPath }}</h1>
+  <nav class="top-nav">
+    <div class="nav-left">
+      <h1 class="nav-breadcrumb">{{ currentPath }}</h1>
     </div>
 
-    <!-- <template v-if="currentPath !== 'My Appointments'">
-      <div class="flex-1 max-w-2xl px-8">
-        <div class="relative group">
-          <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors"
-            :size="18" />
-          <input type="text" placeholder="Search by name, ID, or specialization..."
-            class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" />
-        </div>
+    <div class="nav-right">
+      
+      <div class="nav-actions">
+        <template v-if="['Admin'].includes(currentPath)">
+          <button @click="addDoctor = true" class="btn btn-primary">
+            <Plus :size="18" /> <span>Add Doctor</span>
+          </button>
+        </template>
+
+        <template v-if="currentPath === 'My Appointments'">
+          <button @click="router.push('/patient/doctors')" class="btn btn-primary">
+            <Plus :size="18" /> <span>Book Appointment</span>
+          </button>
+        </template>
       </div>
-    </template> -->
 
+      <div class="nav-divider"></div>
 
-    <div class="flex items-center gap-6">
-      <template v-if="currentPath === 'Doctors' || currentPath === 'Patient'">
-        <button @click="addDoctor = true"
-          class="flex cursor-pointer items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-          <Plus :size="18" /> Add Dcotor
-        </button>
-      </template>
-
-      <template v-if="currentPath === 'My Appointments'">
-        <button
-          class="flex cursor-pointer items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">
-          <Plus :size="18" /> Book Appointment
-        </button>
-      </template>
-      <div class="h-8 w-px bg-slate-100"></div>
-
-      <button @click="redirectToProfile()" class="flex items-center cursor-pointer gap-3 group">
-        <div
-          class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 ring-2 ring-transparent group-hover:ring-blue-100 transition-all">
+      <button @click="redirectToProfile" class="user-profile-btn">
+        <div class="avatar-circle">
           <User :size="20" />
         </div>
-        <div class="text-left hidden md:block">
-          <p class="text-md font-semibold text-slate-800 leading-none">Rahul Sharma</p>
-          <template v-if="role === 'doctor'">
-            <p class="text-xs text-slate-400 mt-1">Doctor</p>
-          </template>
-          <template v-else-if="role === 'admin'">
-            <p class="text-xs text-slate-400 mt-1">Administrator</p>
-          </template>
-          <template v-else-if="role === 'patient'">
-            <p class="text-xs text-slate-400 mt-1">Patient</p>
-          </template>
+        <div class="user-info">
+          <p class="user-name">{{ userStore.user?.name }}</p>
+          <p class="user-role">
+            <span>{{ userStore.user?.role }}</span>
+          </p>
         </div>
       </button>
     </div>
+
     <AddDoctorModal :isOpen="addDoctor" @close="addDoctor = false" />
   </nav>
 </template>
+
+<style src="./styles/navbar.css" scoped></style>

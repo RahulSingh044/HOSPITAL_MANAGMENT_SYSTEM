@@ -1,16 +1,11 @@
 import API from "./api";
 
-export const loginAPI = async (credentials, role) => { 
+export const loginAPI = async (credentials) => { 
     try {
-        console.log("role i get", role)
-        if(!role){
-            throw new Error("Role is required");
-        }
-        
-        const response = await API.post(`/auth/login/${role}`, credentials);
-        return [response.data, role];
+        const response = await API.post(`/auth/login`, credentials);
+        return response.data;
     } catch (error) {
-        throw new Error("Login Failed");
+        throw new Error("Login Failed", error);
     }
 }
 
