@@ -1,0 +1,412 @@
+/* Base Layout & Variables */
+:global(:root) {
+  --bg-main: #F8FAFC;
+  --text-dark: #0F172A;
+  --primary-blue: #2563eb;
+  --dark-card: #1a1c2e;
+  --slate-400: #94A3B8;
+  --radius-4xl: 2.5rem;
+  --radius-3xl: 1.5rem;
+}
+
+.grid-layout {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+/* Left Column (Main Content) */
+.main-content {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .main-content { grid-column: span 8; }
+  .sidebar { grid-column: span 4; }
+}
+
+/* Welcome Hero Section */
+.hero-card {
+  background-color: var(--dark-card);
+  color: white;
+  padding: 3rem;
+  border-radius: var(--radius-4xl);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.hero-card h1 { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+.hero-card p { color: var(--slate-400); line-height: 1.6; max-width: 28rem; }
+
+.hero-decoration {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16rem;
+  height: 16rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-top-left-radius: 100px;
+  margin-right: -2.5rem;
+  margin-bottom: -2.5rem;
+}
+
+/* Specialization Cards */
+.spec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.spec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+@media (min-width: 768px) {
+  .spec-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.spec-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius-3xl);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.spec-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+.icon-box {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Sidebar Sections */
+.sidebar { grid-column: span 12; display: flex; flex-direction: column; gap: 1.5rem; }
+
+.promo-card {
+  background: var(--primary-blue);
+  color: white;
+  padding: 2rem;
+  border-radius: var(--radius-4xl);
+  box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary-white {
+  width: 100%;
+  background: white;
+  color: var(--primary-blue);
+  padding: 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary-white:hover { background: #eff6ff; }
+
+/* Countdown Card */
+.countdown-container {
+  background: #11121e;
+  border-radius: var(--radius-4xl);
+  padding: 1.5rem;
+}
+
+.timer-box { display: flex; justify-content: center; gap: 1rem; color: white; margin-bottom: 1.5rem; }
+.timer-unit { display: flex; flex-direction: column; align-items: center; }
+.timer-val { font-size: 1.875rem; font-weight: 700; }
+.timer-label { font-size: 9px; color: var(--slate-400); letter-spacing: 0.1em; }
+
+.inner-appt-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-3xl);
+}
+
+/* Vital Progress Bars */
+.vitals-card {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius-4xl);
+  border: 1px solid #f1f5f9;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 0.5rem;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill { height: 100%; border-radius: 999px; }
+.bg-blue { background-color: #3b82f6; }
+.bg-red { background-color: #ef4444; }
+.bg-green { background-color: #22c55e; }
+
+/* Custom utility-like classes to match the image */
+.dashboard-wrapper {
+  background-color: #F8FAFC;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  padding: 2rem;
+}
+
+.card-4xl {
+  border-radius: 2.5rem; /* The deep rounded corners from your image */
+}
+
+.hero-bg {
+  background-color: #1a1c2e;
+  background-image: radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Specialization Icon Colors from Image */
+.bg-heart { background-color: #FFF5F5; color: #FF4D4D; }
+.bg-brain { background-color: #FDF2F8; color: #EC4899; }/* Base Layout & Variables */
+:global(:root) {
+  --bg-main: #F8FAFC;
+  --text-dark: #0F172A;
+  --primary-blue: #2563eb;
+  --dark-card: #1a1c2e;
+  --slate-400: #94A3B8;
+  --radius-4xl: 2.5rem;
+  --radius-3xl: 1.5rem;
+}
+
+.grid-layout {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+}
+
+/* Left Column (Main Content) */
+.main-content {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .main-content { grid-column: span 8; }
+  .sidebar { grid-column: span 4; }
+}
+
+/* Welcome Hero Section */
+.hero-card {
+  background-color: var(--dark-card);
+  color: white;
+  padding: 3rem;
+  border-radius: var(--radius-4xl);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.hero-card h1 { font-size: 2.25rem; font-weight: 700; margin-bottom: 1rem; }
+.hero-card p { color: var(--slate-400); line-height: 1.6; max-width: 28rem; }
+
+.hero-decoration {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16rem;
+  height: 16rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-top-left-radius: 100px;
+  margin-right: -2.5rem;
+  margin-bottom: -2.5rem;
+}
+
+/* Specialization Cards */
+.spec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.spec-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+
+@media (min-width: 768px) {
+  .spec-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.spec-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius-3xl);
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.spec-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+.icon-box {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Sidebar Sections */
+.sidebar { grid-column: span 12; display: flex; flex-direction: column; gap: 1.5rem; }
+
+.promo-card {
+  background: var(--primary-blue);
+  color: white;
+  padding: 2rem;
+  border-radius: var(--radius-4xl);
+  box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary-white {
+  width: 100%;
+  background: white;
+  color: var(--primary-blue);
+  padding: 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary-white:hover { background: #eff6ff; }
+
+/* Countdown Card */
+.countdown-container {
+  background: #11121e;
+  border-radius: var(--radius-4xl);
+  padding: 1.5rem;
+}
+
+.timer-box { display: flex; justify-content: center; gap: 1rem; color: white; margin-bottom: 1.5rem; }
+.timer-unit { display: flex; flex-direction: column; align-items: center; }
+.timer-val { font-size: 1.875rem; font-weight: 700; }
+.timer-label { font-size: 9px; color: var(--slate-400); letter-spacing: 0.1em; }
+
+.inner-appt-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-3xl);
+}
+
+/* Vital Progress Bars */
+.vitals-card {
+  background: white;
+  padding: 2rem;
+  border-radius: var(--radius-4xl);
+  border: 1px solid #f1f5f9;
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 0.5rem;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill { height: 100%; border-radius: 999px; }
+.bg-blue { background-color: #3b82f6; }
+.bg-red { background-color: #ef4444; }
+.bg-green { background-color: #22c55e; }
+
+/* Custom utility-like classes to match the image */
+.dashboard-wrapper {
+  background-color: #F8FAFC;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  padding: 2rem;
+}
+
+.card-4xl {
+  border-radius: 2.5rem; /* The deep rounded corners from your image */
+}
+
+.hero-bg {
+  background-color: #1a1c2e;
+  background-image: radial-gradient(circle at top right, rgba(255,255,255,0.05), transparent);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Specialization Icon Colors from Image */
+.bg-heart { background-color: #FFF5F5; color: #FF4D4D; }
+.bg-brain { background-color: #FDF2F8; color: #EC4899; }
+.bg-apple { background-color: #F0FDF4; color: #22C55E; }
+.bg-leaf  { background-color: #F7FEE7; color: #84CC16; }
+
+.btn-shadow {
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+}
+
+/* Container and Typography */
+.specialist-page {
+  background-color: #F8FAFC;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: 'Inter', sans-serif;
+  color: #0F172A;
+}
+
+.content-wrapper {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+/* Header & Search */
+.header-flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+  .header-flex { flex-direction: row; align-items: center; }
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 42rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  background: white;
+  border: 1px solid #F1F5F9;
+  border-radius: 1.5rem; /* 2xl */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}

@@ -7,9 +7,6 @@ from datetime import datetime
 
 appointment_bp = Blueprint("appointments", __name__)
 
-
-
-
 # ---------------------------------
 # Patient books appointment
 # ---------------------------------
@@ -23,14 +20,13 @@ def create_appointment():
     try:
         date_str = data.get("date", "")
         if "T" in date_str:
-            date_obj = datetime.strptime(date_str[:16], "%Y-%m-%dT%H:%M") # handles e.g. "2023-11-01T10:30"
+            date_obj = datetime.strptime(date_str[:16], "%Y-%m-%dT%H:%M")
         else:
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
     except:
         return jsonify({"error": "Invalid date format, expected YYYY-MM-DD or YYYY-MM-DDTHH:MM"}), 400
 
     appointment = Appointment(
-        appointment_id=get_next_appointment_id(),
         patient_id=user_id,
         doctor_id=int(data["doctor_id"]),
         date=date_obj,
@@ -74,7 +70,7 @@ def reschedule_appointment(appointment_id):
     except:
         return jsonify({"error": "Invalid date format, expected YYYY-MM-DD or YYYY-MM-DDTHH:MM"}), 400
 
-    appointment = Appointment.query.filter_by(appointment_id=appointment_id, patient_id=user_id).first()
+    appointment = Appointment.query.filter_by(id=appointment_id, patient_id=user_id).first()
     
     if not appointment:
         return jsonify({"error": "Appointment not found"}), 404
@@ -110,7 +106,7 @@ def cancel_appointment(appointment_id):
     user_id = int(get_jwt_identity())
     
     try:
-        appointment = Appointment.query.filter_by(appointment_id=appointment_id, patient_id=user_id).first()
+        appointment = Appointment.query.filter_by(id=appointment_id, patient_id=user_id).first()
         if not appointment:
             return jsonify({"error": "Appointment not found"}), 404
         if appointment.status == "Cancelled":

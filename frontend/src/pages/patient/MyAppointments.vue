@@ -1,149 +1,227 @@
 <script setup>
-
-import { ref } from 'vue';
-import DialogueBox from '../../components/DialogueBox.vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import DialogueBox from '../../components/DialogueBox.vue';
+import RescheduleModal from '../../components/RescheduleModal.vue';
+import { cancelAppointment, myAppointments, rescheduleAppointment } from '../../services/patient';
 
-const cancelDialog = ref(null);
 const router = useRouter();
 
-const cancelAppointmentDialog = async(id) => {
-    console.log('Attempting to cancel appointment with ID:', id);
-    const confirmed = await cancelDialog.value.open('Are you sure you want to cancel this appointment?, this action cannot be undone');
-    if(confirmed) {
-        console.log('Appointment cancelled:', id);
-    }else {
-        console.log('Cancellation aborted for appointment:', id);
-    }
-}
+// State
+const upcomingAppointments = ref([]);
+const pastVisits = ref([]);
+const currentPage = ref(1);
+const totalRecords = ref(0);
+const searchQuery = ref('');
+const allVisites = ref(false);
 
-const pastAppointmentDetails = (id) => {
-    
-}
+// Dialog Controls
+const cancelDialog = ref(null);
+const isRescheduleOpen = ref(false);
+const activeAppointment = ref(null);
 
-const upcomingAppointments = [
-  {
-    id: 1, month: 'OCT', day: '24', 
-    doctor: 'Dr. Sarah Smith', specialty: 'Cardiology', type: 'General Checkup',
-    time: '10:30 AM', location: 'Main Hospital, Wing B',
-    status: 'Confirmed', statusClass: 'bg-green-100 text-green-600'
-  },
-  {
-    id: 2, month: 'NOV', day: '02', 
-    doctor: 'Dr. Marcus Thorne', specialty: 'Dermatology', type: 'Skin Screening',
-    time: '02:15 PM', location: 'Virtual Consultation',
-    status: 'Pending', statusClass: 'bg-orange-100 text-orange-600'
+// Static/Generated Data
+const availableSlots = ['09:00 AM', '10:30 AM', '01:00 PM', '02:30 PM', '04:00 PM', '05:30 PM'];
+const next15Days = ref([]);
+
+const generateNext15Days = () => {
+  const dates = [];
+  for (let i = 0; i < 15; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    dates.push({
+      fullDate: d.toISOString().split('T')[0], // Result: "2026-04-02"
+      weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
+      dayNum: d.getDate()
+    });
   }
-];
+  next15Days.value = dates;
+};
 
-const pastVisits = [
-  { id: 101, date: 'Sep 12, 2023', doctor: 'Dr. Emily Chen', department: 'Pediatrics', type: 'Vaccination', img: 'https://i.pravatar.cc/100?u=emily' },
-  { id: 102, date: 'Aug 05, 2023', doctor: 'Dr. James Wilson', department: 'General Practice', type: 'Annual Physical', img: 'https://i.pravatar.cc/100?u=james' },
-];
+const getStatusClass = (status) => {
+  const s = status?.toLowerCase();
+  if (s === 'confirmed' || s === 'completed') return 'bg-green-100 text-green-600';
+  if (s === 'pending') return 'bg-yellow-100 text-yellow-600';
+  if (s === 'cancelled') return 'bg-red-100 text-red-600';
+  return 'bg-slate-100 text-slate-600';
+};
+
+const getAppointmentsDetails = async () => {
+  try {
+    const params = { page: currentPage.value, search: searchQuery.value || undefined, all_past: allVisites.value };
+    const data = await myAppointments(params);
+
+    upcomingAppointments.value = (data.upcomingAppointments || []).map(apt => ({
+      ...apt,
+      // IMPORTANT: Ensure 'date' here matches 'YYYY-MM-DD' format for the block to work
+      // If your API returns "2026-04-10T10:00:00", use apt.date.split('T')[0]
+      date: apt.date,
+      statusClass: getStatusClass(apt.status)
+    }));
+
+    const fullHistory = data.pastVisits || [];
+    pastVisits.value = allVisites.value ? fullHistory : fullHistory.slice(0, 3);
+    totalRecords.value = data.pagination?.total_items || 0;
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+const openReschedule = (apt) => {
+  activeAppointment.value = apt;
+  isRescheduleOpen.value = true;
+};
+
+const processReschedule = async (newData) => {
+  try {
+    const res = await rescheduleAppointment(activeAppointment.value.id, newData);
+    alert(res.message || "Appointment rescheduled successfully!");
+    isRescheduleOpen.value = false;
+    await getAppointmentsDetails();
+  } catch (error) {
+    alert("Could not reschedule. Please try again.");
+  }
+};
+
+const cancelAppointmentDialog = async (id) => {
+  const confirmed = await cancelDialog.value.open(
+    'Cancel Appointment',
+    'Are you sure you want to cancel this appointment?'
+  );
+  if (confirmed) {
+    await cancelAppointment(id);
+    await getAppointmentsDetails();
+  }
+};
+
+// Watchers & Lifecycle
+let searchTimeout = null;
+watch(searchQuery, () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { getAppointmentsDetails(); }, 500);
+});
+
+onMounted(() => {
+  getAppointmentsDetails();
+  generateNext15Days();
+});
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans text-slate-900">
-    <div class="max-w-6xl mx-auto space-y-8">
-      <section class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-wrap gap-4">
-        <div class="flex-1 min-w-70 relative">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-          <input 
-            type="text" 
-            placeholder="Search by doctor or clinic..." 
-            class="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 transition outline-none text-sm"
-          />
+  <div class="appointments-page">
+    <div class="max-container space-y-12">
+
+      <section class="search-section">
+        <div class="search-wrapper">
+          <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8;">🔍</span>
+          <input v-model="searchQuery" type="text" placeholder="Search by doctor or clinic..." class="search-input" />
         </div>
-        <select class="px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-          <option>All Departments</option>
-        </select>
-        <select class="px-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-          <option>All Statuses</option>
-        </select>
       </section>
 
-      <section class="space-y-4">
-        <h2 class="text-lg font-bold flex items-center gap-2">
-          <span class="text-blue-600">📅</span> Upcoming Appointments
-        </h2>
-        
-        <div v-for="apt in upcomingAppointments" :key="apt.id" 
-             class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-6">
-          <div class="bg-blue-50 text-blue-600 w-20 h-20 rounded-2xl flex flex-col items-center justify-center border border-blue-100">
-            <span class="text-[10px] uppercase font-black tracking-widest">{{ apt.month }}</span>
-            <span class="text-2xl font-black">{{ apt.day }}</span>
-          </div>
+      <section>
+        <h2 class="section-title"><span>📅</span> Upcoming Appointments</h2>
 
-          <div class="flex-1 text-center md:text-left">
-            <h3 class="text-lg font-bold">{{ apt.doctor }}</h3>
-            <p class="text-slate-500 text-sm mb-3">{{ apt.specialty }} • {{ apt.type }}</p>
-            <div class="flex flex-wrap justify-center md:justify-start gap-4 text-xs font-medium text-slate-400">
-              <span class="flex items-center gap-1.5">🕒 {{ apt.time }}</span>
-              <span class="flex items-center gap-1.5">📍 {{ apt.location }}</span>
+        <div v-if="upcomingAppointments.length === 0"
+          style="background: white; padding: 48px; border-radius: 40px; border: 2px dashed #e2e8f0; text-align: center; color: #94a3b8; font-weight: 700;">
+          No upcoming appointments scheduled.
+        </div>
+
+        <div v-else style="display: flex; flex-direction: column; gap: 16px;">
+          <div v-for="apt in upcomingAppointments" :key="apt.id" class="apt-card">
+
+            <div class="date-badge">
+              <span class="month">{{ apt.month }}</span>
+              <span class="day">{{ apt.day }}</span>
+            </div>
+
+            <div style="flex: 1;">
+              <h3 style="font-size: 18px; font-weight: 900; margin: 0;">{{ apt.doctor }}</h3>
+              <p style="color: #64748b; font-size: 14px; font-weight: 700; margin: 4px 0 12px 0;">
+                {{ apt.specialty }} • {{ apt.type }}
+              </p>
+              <div style="display: flex; gap: 16px; font-size: 11px; font-weight: 700; color: #94a3b8;">
+                <span>🕒 {{ apt.time }}</span>
+                <span>📍 {{ apt.location }}</span>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 16px;">
+              <span :class="['status-tag', apt.status === 'Confirmed' ? 'status-confirmed' : 'status-pending']">
+                {{ apt.status }}
+              </span>
+              <div style="display: flex; gap: 8px;">
+                <button @click="openReschedule(apt)" class="btn-secondary-sm">Reschedule</button>
+                <button @click="cancelAppointmentDialog(apt.id)" class="btn-danger-sm">Cancel</button>
+              </div>
             </div>
           </div>
-
-          <div class="flex items-center gap-3">
-            <span :class="apt.statusClass" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider mr-4">
-              {{ apt.status }}
-            </span>
-            <button class="px-5 py-2.5 cursor-pointer border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition">Reschedule</button>
-            <button @click="cancelAppointmentDialog(apt.id)" class="px-5 py-2.5 cursor-pointer border border-red-100 text-red-500 rounded-xl text-sm font-bold hover:bg-red-50 transition">Cancel</button>
-          </div>
         </div>
       </section>
 
-      <DialogueBox ref="cancelDialog" />
-
-      <section class="space-y-4">
-        <h2 class="text-lg font-bold flex items-center gap-2">
-          <span class="text-blue-600">🕒</span> Past Visits
-        </h2>
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-black tracking-widest">
-              <tr>
-                <th class="px-8 py-4">Date</th>
-                <th class="px-8 py-4">Doctor</th>
-                <th class="px-8 py-4">Department</th>
-                <th class="px-8 py-4">Type</th>
-                <th class="px-8 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-              <tr @click="router.push(`/patient/my-appointments/past/${visit.id}`);" v-for="visit in pastVisits" :key="visit.id" class="hover:bg-slate-50/ cursor-pointer transition">
-                <td class="px-8 py-5 font-bold text-slate-600">{{ visit.date }}</td>
-                <td class="px-8 py-5 flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full bg-slate-100 overflow-hidden">
-                    <img :src="visit.img" />
-                  </div>
-                  <span class="font-bold">{{ visit.doctor }}</span>
-                </td>
-                <td class="px-8 py-5 text-slate-500">{{ visit.department }}</td>
-                <td class="px-8 py-5 text-slate-500">{{ visit.type }}</td>
-                <td class="px-8 py-5 text-right">
-                  <button class="text-blue-600 font-bold hover:underline">View Notes</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <button class="w-full py-4 text-slate-400 text-xs font-bold hover:bg-slate-50 transition border-t border-slate-50">
-            View All History
+      <section>
+        <h2 class="section-title"><span>🕒</span> Past Visits</h2>
+        <div class="history-table-wrapper">
+          <div style="overflow-x: auto;">
+            <table class="medical-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Doctor</th>
+                  <th>Department</th>
+                  <th>Type</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="visit in pastVisits" :key="visit.id" @click="router.push(`/past/${visit.id}`)"
+                  style="cursor: pointer;">
+                  <td style="font-weight: 700; color: #334155;">{{ visit.date }}</td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <img :src="visit.img || `https://ui-avatars.com/api/?name=${visit.doctor}`"
+                        style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #f1f5f9;" />
+                      <span style="font-weight: 700; font-size: 14px;">{{ visit.doctor }}</span>
+                    </div>
+                  </td>
+                  <td style="color: #64748b; font-size: 12px; font-weight: 700;">{{ visit.department }}</td>
+                  <td style="color: #64748b; font-size: 12px; font-weight: 700;">{{ visit.type }}</td>
+                  <td @click="router.push(`/patient/my-appointments/past/${visit.id}`)" style="text-align: right;">
+                    <span style="color: #2563eb; font-weight: 700; font-size: 12px;">View Notes</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button v-if="totalRecords > 3" class="view-all-btn"
+            style="width: 100%; padding: 16px; background: none; border: none; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;">
+            View All History ({{ totalRecords }})
           </button>
         </div>
       </section>
 
-      <footer class="flex justify-between items-center pt-8 border-t border-slate-200">
-        <div class="text-sm">
-          <p class="font-bold">Need help with your appointment?</p>
-          <p class="text-slate-400">Contact our 24/7 support line at 1-800-HEALTH-01</p>
+      <footer
+        style="display: flex; justify-content: space-between; align-items: center; padding-top: 48px; border-top: 1px solid #f1f5f9; margin-top: 48px;">
+        <div>
+          <p style="font-weight: 900; font-size: 12px; color: #0f172a; margin-bottom: 4px;">Need help with your
+            appointment?</p>
+          <p style="color: #94a3b8; font-weight: 700; font-size: 12px; margin: 0;">Contact our 24/7 support line at
+            1-800-HEALTH-01</p>
         </div>
-        <div class="flex gap-4">
-          <button class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-300">❓</button>
-          <button class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-300">💬</button>
+        <div style="display: flex; gap: 12px;">
+          <button
+            style="width: 40px; height: 40px; background: white; border: 1px solid #f1f5f9; border-radius: 12px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">❓</button>
+          <button
+            style="width: 40px; height: 40px; background: white; border: 1px solid #f1f5f9; border-radius: 12px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">💬</button>
         </div>
       </footer>
     </div>
   </div>
+  <DialogueBox ref="cancelDialog" />
+
+  <RescheduleModal v-if="isRescheduleOpen && activeAppointment" :is-open="isRescheduleOpen"
+    :doctor-name="activeAppointment.doctor" :current-date="activeAppointment.date"
+    :current-time="activeAppointment.time" :slots="availableSlots" :next-15-days="next15Days"
+    @close="isRescheduleOpen = false" @confirm="processReschedule" />
 </template>
 
+<style src="./styles/Apointments.css" scoped></style>

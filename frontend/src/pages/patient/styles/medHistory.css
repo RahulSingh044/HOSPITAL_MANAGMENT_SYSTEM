@@ -1,0 +1,124 @@
+/* Page Layout */
+.history-page {
+  margin: 0 auto;
+  padding: 40px 80px;
+  font-family: 'Inter', sans-serif;
+  background-color: #F8FAFC;
+}
+
+/* Stats Row */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 48px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Timeline Logic */
+.timeline-container {
+  position: relative;
+  padding-left: 64px; /* Space for the vertical line and icons */
+}
+
+/* The vertical "Spine" */
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 31px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.record-item {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+/* Year Header */
+.year-tag {
+  position: absolute;
+  left: -84px;
+  top: 0;
+  font-size: 14px;
+  font-weight: 900;
+  color: #94a3b8;
+  background: #F8FAFC; /* Matches page bg to "break" the line */
+  padding: 4px 0;
+}
+
+/* Floating Timeline Icon */
+.timeline-icon {
+  position: absolute;
+  left: -48px;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-size: 14px;
+}
+
+/* The Content Card */
+.record-card {
+  background: white;
+  padding: 32px;
+  border-radius: 28px;
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s ease;
+}
+
+.record-item:hover .record-card {
+  border-color: #3b82f6;
+  transform: translateX(8px);
+}
+
+/* Typography & Labels */
+.label-caps {
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.text-3xl { font-size: 32px; font-weight: 900; color: #0f172a; margin: 0; }
+.text-2xl { font-size: 24px; font-weight: 900; margin: 4px 0 0 0; }
+
+/* Buttons */
+.btn-primary-sm {
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-secondary-sm {
+  background: #f8fafc;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+}

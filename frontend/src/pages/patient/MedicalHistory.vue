@@ -1,128 +1,153 @@
 <script setup>
-const historyStats = [
-  { label: 'Diagnoses', value: '12', icon: '💼', bgClass: 'bg-blue-50 text-blue-600' },
-  { label: 'Lab Tests', value: '34', icon: '🔬', bgClass: 'bg-green-50 text-green-600' },
-  { label: 'Vaccinations', value: '8', icon: '💉', bgClass: 'bg-purple-50 text-purple-600' },
-  { label: 'Archived', value: '45', icon: '📑', bgClass: 'bg-orange-50 text-orange-600' }
-];
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { medHistory } from '../../services/patient';
 
-const medicalRecords = [
-  {
-    id: 1,
-    type: 'Lab Report',
-    date: 'Oct 24, 2023',
-    time: '09:15 AM',
-    title: 'Comprehensive Blood Panel (Annual)',
-    description: 'Routine checkup including CBC, metabolic panel, and lipid profile. Results indicate normal ranges with slight elevation in HDL cholesterol.',
-    provider: 'City General Lab',
-    status: 'Ready',
-    icon: '🔬',
-    markerClass: 'text-green-600 ring-4 ring-green-50',
-    tagClass: 'bg-green-50 text-green-600',
-    actionLabel: 'Download PDF'
-  },
-  {
-    id: 2,
-    type: 'Clinical Visit',
-    date: 'Oct 12, 2023',
-    time: '02:30 PM',
-    title: 'Cardiology Consultation',
-    description: 'Follow-up appointment with Dr. Sarah Smith. Heart sounds normal. No new symptoms of palpitations reported. Continue current exercise regime.',
-    provider: 'Heart & Wellness Clinic',
-    status: 'Ready',
-    icon: '🏥',
-    markerClass: 'text-blue-600 ring-4 ring-blue-50',
-    tagClass: 'bg-blue-50 text-blue-600',
-    actionLabel: 'Notes PDF'
-  },
-  {
-    id: 3,
-    type: 'Imaging',
-    date: 'Nov 05, 2023',
-    time: '11:00 AM',
-    title: 'MRI Scan - Lumbar Spine',
-    description: 'Scan completed. Radiologist report currently being finalized by the diagnostic team.',
-    provider: 'Advanced Imaging Center',
-    status: 'Pending Analysis',
-    icon: '☢️',
-    markerClass: 'text-orange-600 ring-4 ring-orange-50',
-    tagClass: 'bg-orange-50 text-orange-600',
-    actionLabel: 'Download PDF'
+const router = useRouter();
+
+const historyStats = ref([]);
+const medicalRecords = ref([]);
+const isLoading = ref(true); 
+const isFetchingMore = ref(false); 
+
+const currentPage = ref(1);
+const hasNextPage = ref(false);
+
+const getRecordUI = (type) => {
+  const map = {
+    'Checkup Report': { icon: '📋', tagClass: 'bg-blue-50 text-blue-600', markerClass: 'text-blue-500', actionLabel: 'Report' },
+    'Lab Test': { icon: '🔬', tagClass: 'bg-green-50 text-green-600', markerClass: 'text-green-500', actionLabel: 'Results' },
+    'Vaccination': { icon: '💉', tagClass: 'bg-purple-50 text-purple-600', markerClass: 'text-purple-500', actionLabel: 'Cert' }
+  };
+  return map[type] || { icon: '📄', tagClass: 'bg-slate-50 text-slate-600', markerClass: 'text-slate-400', actionLabel: 'View' };
+};
+
+const fetchHistory = async (page = 1) => {
+  try {
+    if (page === 1) isLoading.value = true;
+    else isFetchingMore.value = true;
+
+    const res = await medHistory({ page });
+
+    if (page === 1) historyStats.value = res.historyStats || [];
+    
+    hasNextPage.value = res.pagination?.has_next || false;
+    currentPage.value = res.pagination?.current_page || 1;
+
+    const newRecords = (res.medicalRecords || []).map(record => {
+      const dateObj = new Date(record.date);
+      const ui = getRecordUI(record.type);
+      return {
+        ...record,
+        ...ui,
+        year: dateObj.getFullYear(),
+        formattedDate: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        status: record.status || 'Ready' 
+      };
+    });
+
+    medicalRecords.value = [...medicalRecords.value, ...newRecords];
+
+  } catch (error) {
+    console.error("Medical history fetch error:", error);
+  } finally {
+    isLoading.value = false;
+    isFetchingMore.value = false;
   }
-];
+};
+
+const loadMore = () => {
+  if (hasNextPage.value && !isFetchingMore.value) {
+    fetchHistory(currentPage.value + 1);
+  }
+};
+
+onMounted(() => {
+  fetchHistory(1);
+});
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto p-4 md:p-8 font-sans text-slate-900 bg-[#F8FAFC] min-h-screen">
-    <header class="mb-10">
-      <h1 class="text-3xl font-black text-slate-900">Complete Medical History</h1>
-      <p class="text-slate-500 mt-2">A chronological overview of your health journey and clinical records.</p>
+  <div v-if="isLoading" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+    <div class="animate-spin" style="width: 48px; height: 48px; border: 3px solid #e2e8f0; border-top-color: #2563eb; border-radius: 50%;"></div>
+  </div>
+
+  <div v-else class="history-page">
+    <header style="margin-bottom: 40px;">
+      <h1 class="text-3xl">Complete Medical History</h1>
+      <p style="color: #64748b; font-weight: 500; margin-top: 8px;">A chronological overview of your health journey.</p>
     </header>
 
-    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-      <div v-for="stat in historyStats" :key="stat.label" 
-           class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-        <div :class="stat.bgClass" class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl">
+    <section class="stats-grid">
+      <div v-for="stat in historyStats" :key="stat.label" class="stat-card">
+        <div :class="['stat-icon-box', stat.bgClass]" 
+             style="width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
           {{ stat.icon }}
         </div>
         <div>
-          <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ stat.label }}</p>
-          <p class="text-2xl font-black text-slate-900">{{ stat.value }}</p>
+          <p class="label-caps" style="color: #94a3b8; margin: 0;">{{ stat.label }}</p>
+          <p class="text-2xl">{{ stat.value }}</p>
         </div>
       </div>
     </section>
 
-    <div class="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:md:ml-8 before:w-0.5 before:bg-slate-100">
+    <div class="timeline-container">
       
-      <div class="relative pl-12 md:pl-20 mb-8">
-        <span class="absolute left-0 bg-slate-100 text-slate-500 px-4 py-1 rounded-full text-xs font-black">2023</span>
-      </div>
+      <div v-for="(item, index) in medicalRecords" :key="item.id" class="record-item">
+        
+        <div v-if="index === 0 || item.year !== medicalRecords[index-1].year" class="year-tag">
+          {{ item.year }}
+        </div>
 
-      <div v-for="item in medicalRecords" :key="item.id" class="relative pl-12 md:pl-20 group">
-        <div :class="item.markerClass" 
-             class="absolute left-0 w-10 h-10 md:w-16 md:h-16 bg-white border-4 border-white rounded-full shadow-md flex items-center justify-center text-xl z-10 ml-0 md:-ml-3 transition-transform group-hover:scale-110">
+        <div class="timeline-icon">
           {{ item.icon }}
         </div>
 
-        <div class="bg-white p-6 md:p-8 rounded-4xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-            <div class="flex flex-wrap items-center gap-3">
-              <span :class="item.tagClass" class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">
+        <div class="record-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span :class="['label-caps', item.tagClass]" style="padding: 4px 10px; border-radius: 8px; background: #f1f5f9;">
                 {{ item.type }}
               </span>
-              <span class="text-xs font-bold text-slate-400">{{ item.date }} • {{ item.time }}</span>
+              <span style="font-size: 12px; font-weight: 700; color: #94a3b8;">{{ item.formattedDate }}</span>
             </div>
-            <div class="flex gap-2">
-              <button class="flex items-center gap-2 px-4 py-2 border border-slate-100 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50">
-                📄 {{ item.actionLabel }}
-              </button>
-              <button v-if="item.status === 'Ready'" class="px-4 py-2 bg-[#2563eb] text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20">
+            
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-secondary-sm">📄 {{ item.actionLabel }}</button>
+              <button @click="router.push(`/patient/record/${item.id}`)" class="btn-primary-sm">
                 View Report
-              </button>
-              <button v-else disabled class="px-4 py-2 bg-slate-100 text-slate-400 rounded-xl text-xs font-bold cursor-not-allowed">
-                View Details
               </button>
             </div>
           </div>
 
-          <h3 class="text-xl font-black text-slate-900 mb-2">{{ item.title }}</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-6 max-w-3xl">
-            {{ item.description }}
-          </p>
+          <h3 style="font-size: 20px; font-weight: 900; margin: 0 0 8px 0;">{{ item.title }}</h3>
+          <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 24px;">{{ item.description }}</p>
 
-          <div class="flex flex-wrap gap-6 pt-6 border-t border-slate-50">
-            <div class="text-[10px] font-bold">
-              <span class="text-slate-400 uppercase tracking-tighter">Provider: </span>
-              <span class="text-slate-900">{{ item.provider }}</span>
+          <div style="display: flex; gap: 24px; padding-top: 24px; border-top: 1px solid #f8fafc;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="label-caps" style="color: #cbd5e1;">Provider:</span>
+              <span style="font-size: 12px; font-weight: 700; color: #1e293b;">{{ item.provider }}</span>
             </div>
-            <div class="text-[10px] font-bold">
-              <span class="text-slate-400 uppercase tracking-tighter">Status: </span>
-              <span :class="item.status === 'Ready' ? 'text-green-500' : 'text-orange-500'">{{ item.status }}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="label-caps" style="color: #cbd5e1;">Status:</span>
+              <span :style="{ color: item.status === 'Ready' ? '#22c55e' : '#f97316' }" style="font-size: 12px; font-weight: 700;">
+                ● {{ item.status }}
+              </span>
             </div>
           </div>
         </div>
       </div>
+
+      <div v-if="hasNextPage" style="padding-top: 16px;">
+        <button @click="loadMore" 
+                style="width: 100%; padding: 16px; border: 2px solid #f1f5f9; background: transparent; border-radius: 20px; font-weight: 900; color: #94a3b8; cursor: pointer; transition: 0.2s;">
+          View Older Records
+        </button>
+      </div>
+
     </div>
   </div>
 </template>
 
+<style src="./styles/medHistory.css" scoped></style>

@@ -84,7 +84,7 @@ def patient_dashboard():
     user_id = int(get_jwt_identity())
     now = datetime.utcnow()
     
-    next_apt = Appointment.query.filter(Appointment.patient_id == user_id, Appointment.date >= now).order_by(Appointment.date.asc()).first()
+    next_apt = Appointment.query.filter(Appointment.patient_id == user_id, Appointment.status != "Cancelled" ,Appointment.date >= now).order_by(Appointment.date.asc()).first()
     
     next_appointment = None
     if next_apt:
@@ -97,7 +97,7 @@ def patient_dashboard():
             mins = (secs % 3600) // 60
             
         next_appointment = {
-            "id": next_apt.appointment_id or str(next_apt.id),
+            "id": str(next_apt.id),
             "days": str(days).zfill(2),
             "hours": str(hours).zfill(2),
             "mins": str(mins).zfill(2),
@@ -222,9 +222,6 @@ def get_doctor_profile(doc_id):
         
     return jsonify({"doctor": doctor, "reviews": reviews})
 
-
-
-
 # -----------------------------
 # My Appointments
 # -----------------------------
@@ -237,7 +234,7 @@ def get_my_appointments():
     per_page = 10
     search = request.args.get('search')
     
-    query = Appointment.query.join(Doctor).filter(Appointment.patient_id == user_id)
+    query = Appointment.query.join(Doctor).filter(Appointment.patient_id == user_id, Appointment.status != "Cancelled")
     if search:
         query = query.filter(db.or_(
             Doctor.name.ilike(f"%{search}%"),
@@ -261,7 +258,7 @@ def get_my_appointments():
         is_past = dt < now
         if is_past:
              past.append({
-                "id": apt.appointment_id or str(apt.id),
+                "id": str(apt.id),
                 "date": dt.strftime("%b %d, %Y"),
                 "doctor": doc_name,
                 "department": spec,
@@ -272,7 +269,7 @@ def get_my_appointments():
              status = apt.status if apt.status else "Confirmed"
              status_class = "bg-orange-100 text-orange-600" if status.lower() == "pending" else "bg-green-100 text-green-600"
              upcoming.append({
-                "id": apt.appointment_id or str(apt.id),
+                "id": str(apt.id),
                 "month": dt.strftime("%b").upper(),
                 "day": dt.strftime("%d"),
                 "doctor": doc_name,
@@ -351,11 +348,13 @@ def appointment_details(apt_id):
 @role_required("Patient")
 def medical_history():
     user_id = int(get_jwt_identity())
+    
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 3 
     search = request.args.get('search')
     
-    query = MedicalRecord.query.filter_by(patient_id=user_id)
+    query = MedicalRecord.query.filter_by(patient_id=user_id).order_by(MedicalRecord.date.desc())
+    
     if search:
         query = query.filter(db.or_(
             MedicalRecord.title.ilike(f"%{search}%"),
@@ -370,20 +369,21 @@ def medical_history():
         medicalRecords.append({
             "id": str(r.id),
             "type": r.type,
-            "date": r.date,
+            "date": r.date.format() if r.date else None, 
             "title": r.title,
             "description": r.description,
-            "provider": r.provider
+            "provider": r.provider,
+            "status": "Ready" 
         })
         
     global_total = MedicalRecord.query.filter_by(patient_id=user_id).count()
-    lab_tests_count = MedicalRecord.query.filter_by(patient_id=user_id, type="Lab Report").count()
-    encounters_count = MedicalRecord.query.filter_by(patient_id=user_id, type="Clinical Visit").count()
+    lab_tests_count = MedicalRecord.query.filter_by(patient_id=user_id, type="Lab Test").count()
+    encounters_count = MedicalRecord.query.filter_by(patient_id=user_id, type="Checkup Report").count()
     
     historyStats = [
-      {"label": 'Diagnoses', "value": str(global_total), "icon": '💼', "bgClass": 'bg-blue-50 text-blue-600'},
+      {"label": 'Total Records', "value": str(global_total), "icon": '💼', "bgClass": 'bg-blue-50 text-blue-600'},
       {"label": 'Lab Tests', "value": str(lab_tests_count), "icon": '🔬', "bgClass": 'bg-green-50 text-green-600'},
-      {"label": 'Encounters', "value": str(encounters_count), "icon": '🏥', "bgClass": 'bg-purple-50 text-purple-600'},
+      {"label": 'Checkups', "value": str(encounters_count), "icon": '🏥', "bgClass": 'bg-purple-50 text-purple-600'},
       {"label": 'Archived', "value": '0', "icon": '📑', "bgClass": 'bg-orange-50 text-orange-600'}
     ]
     
@@ -392,12 +392,12 @@ def medical_history():
             "current_page": page,
             "per_page": per_page,
             "total_items": pagination.total,
-            "total_pages": pagination.pages
+            "total_pages": pagination.pages,
+            "has_next": pagination.has_next 
         },
         "historyStats": historyStats,
         "medicalRecords": medicalRecords
     })
-
 
 
 

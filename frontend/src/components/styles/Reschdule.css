@@ -1,0 +1,118 @@
+/* Modal Container & Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 20px;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4); /* slate-900 with opacity */
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: white;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 32px;
+  padding: 32px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Header & Alerts */
+.reschedule-info-box {
+  background: #eff6ff; /* blue-50 */
+  border: 1px solid #dbeafe;
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Selection Items */
+.date-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.date-pill-active {
+  background: #2563eb !important;
+  color: white !important;
+}
+
+.date-pill-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  border: 1px dashed #cbd5e1;
+}
+
+.time-slot {
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  transition: 0.2s;
+  text-align: center;
+}
+
+.time-slot:hover:not(.date-pill-disabled) {
+  border-color: #3b82f6;
+  background: #ffffff;
+}
+
+.time-slot-active {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Actions */
+.btn-confirm {
+  width: 100%;
+  padding: 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+  transition: 0.2s;
+}
+
+.btn-confirm:disabled {
+  background: #e2e8f0;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }

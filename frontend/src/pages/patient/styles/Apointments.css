@@ -1,0 +1,164 @@
+/* Container & Layout */
+.appointments-page {
+  background-color: #F8FAFC;
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.max-container {
+    padding: 10px 100px;
+    margin: 0 auto;
+}
+
+.space-y-12 > * + * { margin-top: 48px; }
+
+/* Search Bar */
+.search-section {
+  background: white;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.search-wrapper {
+  position: relative;
+  max-width: 512px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
+  background: #f8fafc;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  outline: none;
+  transition: ring 0.2s;
+}
+
+.search-input:focus {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Upcoming Appointment Cards */
+.apt-card {
+  background: white;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  transition: all 0.3s ease;
+}
+
+.apt-card:hover {
+  border-color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+/* Date Badge Style */
+.date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  min-width: 70px;
+  height: 70px;
+  border-radius: 18px;
+}
+
+.date-badge .month {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.date-badge .day {
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1;
+}
+
+/* Status Tags */
+.status-tag {
+  padding: 6px 14px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.status-confirmed { background: #f0fdf4; color: #16a34a; }
+.status-pending { background: #fffbeb; color: #d97706; }
+
+/* Buttons */
+.btn-secondary-sm {
+  padding: 8px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-danger-sm {
+  padding: 8px 16px;
+  background: #fff1f2;
+  color: #e11d48;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Table Style */
+.history-table-wrapper {
+  background: white;
+  border-radius: 32px;
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.medical-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.medical-table th {
+  background: #f8fafc;
+  padding: 16px 24px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.medical-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.medical-table tr:hover {
+  background: #fcfdfe;
+}
