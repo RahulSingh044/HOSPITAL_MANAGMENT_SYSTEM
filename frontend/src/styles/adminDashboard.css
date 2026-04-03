@@ -1,0 +1,61 @@
+:root {
+  --bg-page: #f8fafc;
+  --panel-bg: #ffffff;
+  --border-subtle: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --blue: #2563eb;
+  --emerald: #10b981;
+  --orange: #f59e0b;
+}
+
+.dashboard-container {
+  padding: 32px;
+  background-color: var(--bg-page);
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* --- STATS GRID --- */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* --- MAIN LAYOUT --- */
+.main-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 32px;
+}
+
+.content-left {
+  grid-column: span 8;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+
+@media (max-width: 1024px) {
+  .content-left { grid-column: span 12; }
+}
+
+/* --- HELPERS --- */
+.text-link {
+  background: none; border: none;
+  color: var(--blue); font-size: 0.875rem; font-weight: 700;
+  cursor: pointer;
+}
+.text-link:hover { text-decoration: underline; }
+
+.btn-full-logs {
+  width: 100%; margin-top: 32px; padding: 12px;
+  background: #f8fafc; border: none; border-radius: 12px;
+  color: var(--text-secondary); font-weight: 700; font-size: 0.875rem;
+  cursor: pointer; transition: 0.2s;
+}
+.btn-full-logs:hover { background: #f1f5f9; }

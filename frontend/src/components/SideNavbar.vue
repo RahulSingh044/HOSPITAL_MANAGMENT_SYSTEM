@@ -60,8 +60,7 @@ const handleLogout = () => {
         </svg>
       </div>
       <div class="brand-text">
-        <h1 class="brand-name">MedCore</h1>
-        <p class="brand-tagline">Enterprise Portal</p>
+        <h1 class="brand-name">Medi_Care</h1>
       </div>
     </div>
 

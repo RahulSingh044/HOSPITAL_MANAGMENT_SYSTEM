@@ -5,6 +5,7 @@ const BASE = "/api/admin";
 export const adminDashboard = async () => {
   try {
     const response = await API.get(`${BASE}`);
+    console.log("dashboard", response.data)
     return response.data;
   } catch (error) {
     console.log("Admin Dashboard Error:", error.response);
@@ -15,6 +16,7 @@ export const adminDashboard = async () => {
 export const dashboardTrends = async () => {
   try {
     const response = await API.get(`${BASE}/appointments-trend`);
+    console.log("backedn trends", response.data)
     return response.data;
   } catch (error) {
     console.error("Admin Dashboard Graph Error:", error.response);
@@ -70,6 +72,7 @@ export const updateDocStatus = async (id, stat) => {
     const response = await API.put(`${BASE}/doctors/${id}/status`, {
       status: stat,
     });
+    console.log("Status update response", response.data)
     return response.data;
   } catch (error) {
     console.log("Error while updating status for doctor", error.response);

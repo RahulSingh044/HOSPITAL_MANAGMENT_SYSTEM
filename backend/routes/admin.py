@@ -178,6 +178,70 @@ def get_doctors_name():
     })
 
 
+# --------------------------------------------------
+# Filters
+# --------------------------------------------------
+@admin_bp.route("/admin/doctors-filter", methods=["GET"])
+@jwt_required()
+@role_required("Admin")
+def filter_doctors():
+
+    page = int(request.args.get("page", 1))
+    per_page = 10
+
+    search = request.args.get("search")
+    status = request.args.get("status")
+    specialization = request.args.get("specialization")
+    min_exp = request.args.get("min_exp")
+
+    query = Doctor.query
+
+    if search:
+        query = query.filter(db.or_(
+            Doctor.name.ilike(f"%{search}%"),
+            Doctor.email.ilike(f"%{search}%"),
+            Doctor.specialization.ilike(f"%{search}%")
+        ))
+
+    if status:
+        query = query.filter(Doctor.status == status)
+
+    if specialization:
+        query = query.filter(Doctor.specialization == specialization)
+
+    if min_exp:
+        try:
+            exp_val = int(min_exp)
+            query = query.filter(Doctor.experience >= exp_val)
+        except ValueError:
+            pass
+
+    pagination = query.order_by(Doctor.experience.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    doctors = []
+    for d in pagination.items:
+        doctors.append({
+            "_id": str(d.id),
+            "doctor_id": d.doctor_id,
+            "name": d.name,
+            "gender": d.gender,
+            "mobile": d.mobile,
+            "email": d.email,
+            "specialization": d.specialization,
+            "experience": d.experience,
+            "schedule": d.schedule,
+            "status": d.status,
+            "image": d.image_url if d.image_url else f"https://ui-avatars.com/api/?name={d.name}"
+        })
+
+    return jsonify({
+        "page": page,
+        "per_page": per_page,
+        "total": pagination.total,
+        "total_pages": pagination.pages,
+        "data": doctors
+    })
+
 
 
 # -----------------------------
