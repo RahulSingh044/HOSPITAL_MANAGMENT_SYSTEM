@@ -2,10 +2,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from "vue-router";
 // Replace with your actual service imports
-import { getDocDetails, bookAppointment } from '../../services/patient';
+import { getDocDetails, bookAppointment, addReview } from '../../services/patient';
+import { Plus } from 'lucide-vue-next';
+import  ReviewModal from '../../components/ReviewModal.vue';
 
 const route = useRoute();
-const router = useRouter();
 
 // --- State ---
 const doctor = ref(null);
@@ -59,12 +60,6 @@ const currentMonthDisplay = computed(() => {
   return today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 });
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'Recent';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-};
-
 // --- Booking Logic ---
 const handleBooking = async () => {
   if (!doctor.value || isBooking.value) return;
@@ -101,6 +96,25 @@ const handleBooking = async () => {
     isBooking.value = false;
   }
 };
+
+const isReviewModalOpen = ref(false);
+const submitting = ref(false);
+
+const handleReviewSubmit = async (reviewData) => {
+  try {
+    submitting.value = true;
+    
+    await addReview(id.value, reviewData);
+    alert("Review added successfully!");
+    await getDoc();
+    isReviewModalOpen.value = false;
+  } catch (e) {
+    alert("Error saving review");
+  } finally {
+    submitting.value = false;
+  }
+};
+
 </script>
 
 <template>
@@ -164,10 +178,17 @@ const handleBooking = async () => {
         </section>
 
         <section class="card-4xl">
-          <h2
-            style="font-size: 20px; font-weight: 700; margin-bottom: 32px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #2563eb;">⭐</span> Patient Reviews
-          </h2>
+          <div class="review-header">
+            <h2 class="review-title">
+              <span class="star-icon">⭐</span>
+              Patient Reviews
+            </h2>
+
+            <button @click="isReviewModalOpen = true" class="btn-review">
+              <Plus class="icon-sm" />
+              <span>Add Review</span>
+            </button>
+          </div>
           <div v-if="reviews.length > 0"
             style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
             <div v-for="review in reviews" :key="review.id" class="review-card">
@@ -239,6 +260,10 @@ const handleBooking = async () => {
 
     </div>
   </div>
+
+  //Modal for adding reviews
+  <ReviewModal :isOpen="isReviewModalOpen" :isSubmitting="submitting" @close="isReviewModalOpen = false"
+    @submit="handleReviewSubmit" />
 </template>
 
 <style src="./styles/docDetails.css" scoped>
