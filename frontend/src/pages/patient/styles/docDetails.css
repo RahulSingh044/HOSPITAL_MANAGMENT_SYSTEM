@@ -29,6 +29,77 @@
   margin-bottom: 24px;
 }
 
+/* Container for title and button */
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Pushes button to the right */
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0; /* Optional: adds a clean separator */
+}
+
+/* Title Styling */
+.review-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0; /* Reset default h2 margins */
+}
+
+.star-icon {
+  font-size: 18px;
+}
+
+/* Secondary Button (Add Review) */
+.btn-review{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f1f5f9; /* Soft slate gray */
+  color: #2563eb; /* Primary Blue text */
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-review:hover {
+  background-color: #e2e8f0;
+  transform: translateY(-1px);
+}
+
+.btn-review:active {
+  transform: scale(0.98);
+}
+
+/* Icon sizing for Heroicons/Lucide */
+.icon-sm {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.5px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+  .review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .btn-review{
+    width: 100%; /* Full width button on small screens */
+    justify-content: center;
+  }
+}
+
 .doc-header-img {
   width: 140px;
   height: 140px;

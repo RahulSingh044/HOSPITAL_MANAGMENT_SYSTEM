@@ -67,16 +67,24 @@ class Appointment(db.Model):
 
 class MedicalRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
-    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=True)
-    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
-    date = db.Column(db.String(50))
+
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), index=True)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'))
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), unique=True)
+
+    date = db.Column(db.DateTime, default=datetime.utcnow)
     title = db.Column(db.String(200))
     description = db.Column(db.Text)
+
+    vitals = db.relationship("Vital", cascade="all, delete-orphan")
+    notes = db.relationship("Note", cascade="all, delete-orphan")
+    prescriptions = db.relationship("Prescription", cascade="all, delete-orphan")
 
 class Prescription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
+    medical_record_id = db.Column(db.Integer, db.ForeignKey('medical_record.id'))
     name = db.Column(db.String(255))
     dosage = db.Column(db.String(255))
     frequency = db.Column(db.String(255))
@@ -85,6 +93,8 @@ class Prescription(db.Model):
 class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'))
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
+    medical_record_id = db.Column(db.Integer, db.ForeignKey('medical_record.id'))
     text = db.Column(db.Text)
     date = db.Column(db.String(50))
 
@@ -92,6 +102,8 @@ class Vital(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointment.id'), nullable=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'))
+    medical_record_id = db.Column(db.Integer, db.ForeignKey('medical_record.id'), nullable=True)
     label = db.Column(db.String(100))
     value = db.Column(db.String(50))
     unit = db.Column(db.String(50))

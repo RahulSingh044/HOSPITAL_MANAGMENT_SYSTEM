@@ -4,6 +4,7 @@ from utils import role_required, get_next_appointment_id
 from extensions import db
 from models import Appointment, Patient, Doctor
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 
 appointment_bp = Blueprint("appointments", __name__)
 
@@ -154,3 +155,84 @@ def bulk_appointments():
     db.session.commit()
 
     return jsonify({"message": "Bulk appointments created"}), 201
+
+
+@appointment_bp.route("/doctors/appointments/<string:appointment_id>/confirm", methods=["PATCH"])
+@jwt_required()
+@role_required("Doctor")
+def confirm_appointment(appointment_id):
+    doctor_id = int(get_jwt_identity())
+
+    appointment = Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id).first()
+
+    if not appointment:
+        return jsonify({"error": "Appointment not found"}), 404
+    
+    if appointment.status != "Pending":
+        return jsonify({"error": "Only pending appointments can be confirmed"}), 400
+    
+    try:
+        appointment.status = "Confirmed"
+        db.session.commit()
+        return jsonify({"message": "Appointment confirmed successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@appointment_bp.route("/doctors/appointments/<string:appointment_id>/cancel", methods=["PATCH"])
+@jwt_required()
+@role_required("Doctor")
+def cancel_appointment_doctor(appointment_id):
+    doctor_id = int(get_jwt_identity())
+
+    appointment = Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id).first()
+
+    if not appointment:
+        return jsonify({"error": "Appointment not found"}), 404
+    
+    if appointment.status != "Pending" and appointment.status != "Confirmed":
+        return jsonify({"error": "Only pending appointments can be cancelled"}), 400
+    
+    try:
+        appointment.status = "Cancelled"
+        db.session.commit()
+        return jsonify({"message": "Appointment cancelled successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@appointment_bp.route("/doctors/appointments/<string:appointment_id>", methods=["GET"])
+@jwt_required()
+@role_required("Doctor")
+def get_appointment_status(appointment_id):
+    user_id = int(get_jwt_identity())
+
+    try:
+        appointment = Appointment.query.options(
+            joinedload(Appointment.patient)
+        ).filter_by(id=appointment_id).first()
+
+        if not appointment:
+            return jsonify({"error": "Appointment not found"}), 404
+        
+        if appointment.patient_id != user_id and appointment.doctor_id != user_id:
+            return jsonify({"error": "Unauthorized access to appointment status"}), 403
+        
+        appointment_data = {
+            "id": appointment.id,
+            "doctor_id": appointment.doctor_id,
+            "date": appointment.date.isoformat() if appointment.date else None,
+
+            "patient": {
+                "id": appointment.patient.id,
+                "name": appointment.patient.name,
+                "age": appointment.patient.age,
+                "gender": appointment.patient.gender,
+                "medical_id": appointment.patient.medical_id
+            }
+        }
+
+        return jsonify(data=appointment_data), 200
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

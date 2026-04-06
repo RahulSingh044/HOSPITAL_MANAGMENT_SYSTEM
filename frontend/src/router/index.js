@@ -39,7 +39,7 @@ const routes = [
       { path: "patients", component: () => import("../pages/doctor/Patient.vue") },
       { path: "patients/:id", component: () => import("../pages/doctor/PatientDetails.vue") },
       { path: "appointments", component: () => import("../pages/doctor/Appointments.vue") },
-      { path: "appointments/:id", component: () => import("../pages/doctor/PatientAppointmentReport.vue") },
+      { path: "appointment/:id", component: () => import("../pages/doctor/PatientAppointmentReport.vue") },
     ],
   },
 

@@ -1,207 +1,250 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { FilterIcon, DownloadIcon, EyeIcon, MoreVerticalIcon } from 'lucide-vue-next';
+import { ref, computed, onMounted, watch } from 'vue';
+import { 
+    SearchIcon, FilterIcon, DownloadIcon, EyeIcon, 
+    MoreVerticalIcon, ChevronLeftIcon, ChevronRightIcon 
+} from 'lucide-vue-next';
+import { getPatients } from '../../services/doctor';
 
-const activeTab = ref('All Patients');
+const patients = ref([]);
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalRecords = ref(0);
+const searchQuery = ref(''); 
+const patientFilter = ref('All Patients');
+const isLoading = ref(false);
 
-const patients = ref([
-    {
-        name: 'Alicia Vance',
-        id: '#PX-9920',
-        gender: 'Female',
-        age: 42,
-        img: 'https://i.pravatar.cc/150?u=alicia',
-        lastVisit: 'Oct 18,',
-        lastVisitYear: '2023',
-        condition: 'Hypertension',
-        treatment: 'ACE Inhibitors daily, Low-sodium diet...',
-        status: 'CHRONIC CARE'
-    },
-    {
-        name: 'Marcus Wright',
-        id: '#PX-8172',
-        gender: 'Male',
-        age: 65,
-        img: 'https://i.pravatar.cc/150?u=marcus',
-        lastVisit: 'Oct 15,',
-        lastVisitYear: '2023',
-        condition: 'Coronary Artery Disease',
-        treatment: 'Statin therapy, Cardiac rehab phase...',
-        status: 'REGULAR'
-    },
-    {
-        name: 'Sarah Parker',
-        id: '#PX-4412',
-        gender: 'Female',
-        age: 29,
-        initials: 'SP',
-        lastVisit: 'Oct 21,',
-        lastVisitYear: '2023',
-        condition: 'Post-Op Recovery',
-        treatment: 'Wound care management, Pain medication...',
-        status: 'RECENT SURGERY'
-    },
-    {
-        name: 'Robert Johnson',
-        id: '#PX-1109',
-        gender: 'Male',
-        age: 54,
-        initials: 'RJ',
-        lastVisit: 'Sept 30,',
-        lastVisitYear: '2023',
-        condition: 'Type 2 Diabetes',
-        treatment: 'Insulin titration, Quarterly A1C monitoring...',
-        status: 'CHRONIC CARE'
+let searchTimeout = null;
+
+const getPatientsDetails = async () => {
+    isLoading.value = true;
+    try {
+        const params = {
+            page: currentPage.value,
+            filter: patientFilter.value === 'All Patients' ? undefined : patientFilter.value,
+            search: searchQuery.value || undefined
+        };
+        
+        const res = await getPatients(params);
+
+        patients.value = res.data;
+        totalPages.value = res.pagination?.total_pages || 1;
+        totalRecords.value = res.pagination?.total_items || 0;
+    } catch (error) {
+        console.error("Patients fetch error:", error);
+    } finally {
+        isLoading.value = false;
     }
-]);
+};
 
-// Styling Helpers
+// --- Watchers ---
+
+watch(searchQuery, () => {
+    currentPage.value = 1;
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        getPatientsDetails();
+    }, 500);
+});
+
+// Watch Filter Dropdown
+watch(patientFilter, () => {
+    currentPage.value = 1;
+    getPatientsDetails();
+});
+
+// Watch Pagination
+watch(currentPage, () => {
+    getPatientsDetails();
+});
+
+onMounted(() => {
+    getPatientsDetails();
+});
+
+// --- Helpers ---
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ };
+const prevPage = () => { if (currentPage.value > 1) currentPage.value-- };
+
+const pages = computed(() => {
+  const arr = [];
+  for (let i = 1; i <= Math.min(totalPages.value, 5); i++) arr.push(i);
+  return arr;
+});
+
+const getInitials = (name) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '??';
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return { day: 'N/A', year: '' };
+    const date = new Date(dateStr);
+    return {
+        day: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        year: date.getFullYear()
+    };
+};
+
 const conditionStyles = (cond) => {
     const map = {
-        'Hypertension': 'bg-purple-50 text-purple-600',
-        'Coronary Artery Disease': 'bg-orange-50 text-orange-600',
-        'Post-Op Recovery': 'bg-green-50 text-green-600',
-        'Type 2 Diabetes': 'bg-red-50 text-red-600'
+        'Observing': 'bg-blue-50',
+        'Critical': 'bg-red-50',
+        'Healthy': 'bg-green-50',
+        'Recovering': 'bg-purple-50',
+        'Under Treatment': 'bg-orange-50',
+        'Discharged': 'bg-gray-100',
     };
-    return map[cond] || 'bg-gray-50 text-gray-600';
+    return map[cond] || 'bg-gray-50';
 };
 
-const statusStyles = (status) => {
-    const map = {
-        'CHRONIC CARE': 'text-blue-500 bg-blue-50/50 px-2 py-0.5 rounded',
-        'REGULAR': 'text-slate-400',
-        'RECENT SURGERY': 'text-purple-500 bg-purple-50/50 px-2 py-0.5 rounded'
-    };
-    return map[status] || 'text-slate-400';
-};
+const exportToCSV = () => {
+    if (!patients.value.length) return;
 
-// Filtering Logic
-const filteredPatients = computed(() => {
-    if (activeTab.value === 'All Patients') return patients.value;
-    return patients.value.filter(p => p.status.toLowerCase() === activeTab.value.toLowerCase());
-});
+    const headers = [
+        "Name",
+        "Medical ID",
+        "Gender",
+        "Age",
+        "Mobile",
+        "Email",
+        "Condition",
+        "Last Visit",
+        "Admission Date"
+    ];
+
+    const rows = patients.value.map(p => [
+        p.name,
+        p.medical_id,
+        p.gender,
+        p.age,
+        p.mobile,
+        p.email,
+        p.condition,
+        p.last_visit,
+        p.admission_date
+    ]);
+
+    const csvContent = [
+        headers.join(","), 
+        ...rows.map(row => row.map(val => `"${val ?? ''}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.setAttribute("download", `patients_${new Date().toISOString().split("T")[0]}.csv`);
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+};
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 p-8 font-sans text-slate-700">
-        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-            <div class="flex items-center gap-2">
-                <div class="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
-                    <button v-for="tab in ['All Patients', 'Chronic Care', 'Recent Surgery', 'High Risk']" :key="tab"
-                        @click="activeTab = tab" :class="[
-                            'px-4 py-2 rounded-lg text-sm font-bold transition-all',
-                            activeTab === tab ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-gray-50'
-                        ]">
-                        {{ tab }}
-                    </button>
-                </div>
+    <div class="patients-container">
+        <div class="dashboard-controls">
+            <div class="search-container">
+                <SearchIcon class="search-icon" :size="18" />
+                <input v-model.trim="searchQuery" type="text" placeholder="Search patients by name, ID, or phone..."
+                    class="search-input" />
             </div>
 
-            <div class="flex items-center gap-3 w-full lg:w-auto">
-                <button
-                    class="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-gray-50">
-                    <FilterIcon class="w-4 h-4" /> Advanced Filters
-                </button>
-                <button
-                    class="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-gray-50">
-                    <DownloadIcon class="w-4 h-4" /> Export
+            <div class="filter-actions">
+                <div class="select-wrapper">
+                    <FilterIcon class="select-icon" :size="14" />
+                    <select v-model="patientFilter"  class="status-select">
+                        <option
+                            v-for="tab in ['All Patients', 'Observing', 'Healthy', 'Critical', 'Recovering', 'Under Treatment', 'Discharged']"
+                            :key="tab" :value="tab">
+                            {{ tab }}
+                        </option>
+                    </select>
+                </div>
+
+                <button class="action-btn export-btn" @click="exportToCSV">
+                    <DownloadIcon :size="16" />
+                    <span>Export</span>
                 </button>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-250">
+        <div class="table-card">
+            <div style="overflow-x: auto;">
+                <table class="patient-table">
                     <thead>
-                        <tr
-                            class="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-gray-50 bg-gray-50/30">
-                            <th class="px-8 py-4">Name & ID</th>
-                            <th class="px-6 py-4">Last Visit</th>
-                            <th class="px-6 py-4">Medical Condition</th>
-                            <th class="px-6 py-4">Treatment Plan</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-right">Actions</th>
+                        <tr>
+                            <th>Patient Details</th>
+                            <th>Contact</th>
+                            <th>Last Visit</th>
+                            <th>Condition</th>
+                            <th>Admission</th>
+                            <th style="text-align: right;">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        <tr v-for="patient in filteredPatients" :key="patient.id"
-                            class="hover:bg-gray-50/50 transition-colors group">
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-4">
-                                    <div v-if="patient.img" class="relative">
-                                        <img :src="patient.img"
-                                            class="w-10 h-10 rounded-full object-cover border border-gray-100" />
-                                    </div>
-                                    <div v-else
-                                        class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-bold text-xs border border-gray-100">
-                                        {{ patient.initials }}
-                                    </div>
+                    <tbody>
+                        <tr v-for="patient in patients" :key="patient._id">
+                            <td>
+                                <div class="patient-identity">
+                                    <div class="avatar-circle">{{ getInitials(patient.name) }}</div>
                                     <div>
-                                        <div class="text-sm font-bold text-slate-900">{{ patient.name }}</div>
-                                        <div class="text-[10px] font-bold text-slate-400 uppercase">{{ patient.id }} •
-                                            {{ patient.gender }}, {{ patient.age }}</div>
+                                        <div class="patient-name">{{ patient.name }}</div>
+                                        <div class="patient-sub">{{ patient.medical_id }} • {{ patient.gender }}, {{
+                                            patient.age }}</div>
                                     </div>
                                 </div>
                             </td>
-
-                            <td class="px-6 py-5">
-                                <div class="text-sm font-medium text-slate-600">{{ patient.lastVisit }}</div>
-                                <div class="text-[10px] font-bold text-slate-400">{{ patient.lastVisitYear }}</div>
+                            <td>
+                                <div style="font-size: 14px;">{{ patient.mobile }}</div>
+                                <div style="font-size: 10px; color: #94a3b8;">{{ patient.email }}</div>
                             </td>
-
-                            <td class="px-6 py-5">
-                                <span :class="conditionStyles(patient.condition)"
-                                    class="px-3 py-1 rounded-lg text-[11px] font-bold">
+                            <td>
+                                <div style="font-size: 14px; font-weight: 500;">{{ formatDate(patient.last_visit).day }}
+                                </div>
+                                <div style="font-size: 10px; color: #94a3b8; font-weight: 700;">{{
+                                    formatDate(patient.last_visit).year }}</div>
+                            </td>
+                            <td>
+                                <span class="badge" :class="conditionStyles(patient.condition)">
                                     {{ patient.condition }}
                                 </span>
                             </td>
-
-                            <td class="px-6 py-5">
-                                <p class="text-sm text-slate-500 max-w-60 truncate leading-relaxed">
-                                    {{ patient.treatment }}
-                                </p>
-                            </td>
-
-                            <td class="px-6 py-5">
-                                <span :class="statusStyles(patient.status)"
-                                    class="text-[10px] font-black uppercase tracking-tighter">
-                                    {{ patient.status }}
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-5 text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <router-link :to="`/doctor/patients/${patient.id.replace('#', '')}`"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex">
-                                        <EyeIcon class="w-5 h-5" />
-                                    </router-link>
-                                    <button
-                                        class="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors">
-                                        <MoreVerticalIcon class="w-5 h-5" />
-                                    </button>
-                                </div>
+                            <td style="font-size: 14px; color: #64748b;">{{ patient.admission_date }}</td>
+                            <td style="text-align: right;">
+                                <router-link :to="`/doctor/patients/${patient._id}`"
+                                    style="color: #2563eb; margin-right: 10px;">
+                                    <EyeIcon :size="20" />
+                                </router-link>
+                                <button style="background: none; border: none; color: #cbd5e1; cursor: pointer;">
+                                    <MoreVerticalIcon :size="20" />
+                                </button>
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="p-6 border-t border-gray-50 flex items-center justify-between">
-                <p class="text-sm text-slate-400">
-                    Showing <span class="font-bold text-slate-700">1 to 4</span> of 148 patients
+            <footer class="table-footer">
+                <p style="font-size: 13px; color: #64748b;">
+                    Showing <b>{{ ((currentPage - 1) * 10) + 1 }} - {{ Math.min(currentPage * 10, totalRecords) }}</b>
+                    of {{ totalRecords }}
                 </p>
-                <div class="flex items-center gap-2">
-                    <button class="px-4 py-2 text-sm font-bold text-slate-400 hover:text-slate-600">Previous</button>
-                    <div class="flex gap-1">
-                        <button v-for="p in [1, 2, 3]" :key="p"
-                            :class="p === 1 ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-500 hover:bg-gray-50 border-transparent'"
-                            class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold border transition-all">
-                            {{ p }}
-                        </button>
-                    </div>
-                    <button class="px-4 py-2 text-sm font-bold text-blue-600 hover:text-blue-700">Next</button>
+                <div class="pagination-controls">
+                    <button @click="prevPage" :disabled="currentPage === 1" class="page-num">
+                        <ChevronLeftIcon :size="16" />
+                    </button>
+                    <button v-for="p in pages" :key="p" @click="currentPage = p"
+                        :class="['page-num', { active: currentPage === p }]">
+                        {{ p }}
+                    </button>
+                    <button @click="nextPage" :disabled="currentPage >= totalPages" class="page-num">
+                        <ChevronRightIcon :size="16" />
+                    </button>
                 </div>
-            </div>
+            </footer>
         </div>
     </div>
 </template>
+
+<style src="../../styles/doctorPatient.css" scoped></style>

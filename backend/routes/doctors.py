@@ -1,13 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import func, or_
 from utils import role_required
 from extensions import db
 from models import Doctor, Patient, Appointment, MedicalRecord, Prescription, Note, Vital
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 doctor_bp = Blueprint("doctors", __name__)
-
-
 
 # -----------------------------
 # Doctor Profile
@@ -39,7 +38,7 @@ def get_my_profile():
 
 
 # Todays dashboard
-@doctor_bp.route("/doctor/dashboard", methods=["GET"])
+@doctor_bp.route("/doctors/dashboard", methods=["GET"])
 @jwt_required()
 @role_required("Doctor")
 def doctor_dashboard():
@@ -56,6 +55,7 @@ def doctor_dashboard():
     # 1. Weekly appointments
     appointments = Appointment.query.filter(
         Appointment.doctor_id == doctor_id,
+        Appointment.status != "Cancelled",
         Appointment.date >= start_of_week,
         Appointment.date < end_of_week
     ).order_by(Appointment.date.asc()).all()
@@ -83,26 +83,36 @@ def doctor_dashboard():
     total_patients = Patient.query.count()
 
     # 3. Pending reports count
-    pending_reports = 0
+    # pending_reports = MedicalRecord.query.filter_by(doctor_id=doctor_id, status="Pending").count()
 
     # 4. Recent patients
-    recent = Patient.query.order_by(Patient.id.desc()).limit(5).all()
+    recent = (
+        Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status == "Completed",
+            Appointment.date == start_of_today,
+        )
+        .order_by(Appointment.date.desc())
+        .limit(5)
+        .all()
+    )
+
     recent_patients = []
-    for p in recent:
-        recent_patients.append({
-            "_id": str(p.id),
-            "medical_id": p.medical_id,
-            "name": p.name,
-            "gender": p.gender,
-            "age": p.age
-        })
+    for appt in recent:
+        if appt.patient:
+            recent_patients.append({
+                "_id": str(appt.patient.id),
+                "medical_id": appt.patient.medical_id,
+                "name": appt.patient.name,
+                "age": appt.patient.age, 
+            })
 
     return jsonify({
         "today_appointments": len(today_appointments),
         "appointments": today_appointments,
         "weekly_schedule": weekly_schedule,
         "total_patients": total_patients,
-        "pending_reports": pending_reports,
+        # "pending_reports": pending_reports,
         "recent_patients": recent_patients
     })
 
@@ -118,26 +128,39 @@ def doctor_dashboard():
 def my_appointments():
     doctor_id = int(get_jwt_identity())
 
+    # Pagination
     page = request.args.get('page', 1, type=int)
-    per_page = 10
-    
-    search = request.args.get("search")
-    status = request.args.get("status")
+    per_page = request.args.get('per_page', 10, type=int)
 
-    query = Appointment.query.join(Patient).filter(Appointment.doctor_id == doctor_id)
-    if status:
+    # Filters
+    search = request.args.get("search", type=str)
+    status = request.args.get("status", type=str)
+
+    # Base query
+    query = Appointment.query.join(Patient).filter(Appointment.doctor_id == doctor_id, Appointment.status != "Completed", Appointment.status != "Cancelled")
+
+    # Status filtering
+    if status == "Today":
+        today_str = date.today().strftime("%Y-%m-%d")
+        query = query.filter(func.date(Appointment.date) == today_str)
+    elif status:
         query = query.filter(Appointment.status == status)
+
+    # Search filtering
     if search:
-        query = query.filter(db.or_(
-            Patient.name.ilike(f"%{search}%"),
-            Patient.medical_id.ilike(f"%{search}%")
-        ))
-    
+        query = query.filter(
+            or_(
+                Patient.name.ilike(f"%{search}%"),
+                Patient.medical_id.ilike(f"%{search}%")
+            )
+        )
+
+    # Pagination & ordering
     pagination = query.order_by(Appointment.date.asc()).paginate(page=page, per_page=per_page, error_out=False)
-    
-    formatted_appointments = []
-    for appt in pagination.items:
-        formatted_appointments.append({
+
+    # Format response
+    formatted_appointments = [
+        {
             "_id": str(appt.id),
             "patient_id": str(appt.patient_id),
             "doctor_id": str(appt.doctor_id),
@@ -149,7 +172,9 @@ def my_appointments():
             "patient_age": appt.patient.age,
             "patient_gender": appt.patient.gender,
             "medical_id": appt.patient.medical_id
-        })
+        }
+        for appt in pagination.items
+    ]
 
     return jsonify({
         "pagination": {
@@ -160,9 +185,6 @@ def my_appointments():
         },
         "data": formatted_appointments
     })
-
-
-
 
 # -----------------------------
 # Doctor All Patients
@@ -186,6 +208,8 @@ def get_patients():
             Patient.medical_id.ilike(f"%{search}%"),
             Patient.condition.ilike(f"%{search}%")
         ))
+    
+    query = query.filter()
         
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
@@ -230,7 +254,6 @@ def patient_profile(patient_id):
         patient = Patient.query.get(int(patient_id))
     if not patient:
         return jsonify({"error": "Patient not found"}), 404
-
     bp_vital = Vital.query.filter_by(patient_id=patient.id, label="Blood Pressure").order_by(Vital.id.desc()).first()
     hr_vital = Vital.query.filter_by(patient_id=patient.id, label="Heart Rate").order_by(Vital.id.desc()).first()
     
@@ -275,9 +298,6 @@ def patient_profile(patient_id):
         "prescriptions": prescriptions,
         "recent_medical_records": medical_records
     })
-
- 
-
    
 # -----------------------------
 # Patient Condition Update
@@ -313,18 +333,29 @@ def add_prescription(apt_id):
         return jsonify({"error": "Appointment not found"}), 404
         
     data = request.json
-    p = Prescription(
-        appointment_id=apt.id,
-        name=data.get("name"),
-        dosage=data.get("dosage"),
-        frequency=data.get("frequency"),
-        duration=data.get("duration")
-    )
-    db.session.add(p)
+    created_prescriptions = []
+    for items in data:
+        name = items.get("name")
+        dosage = items.get("dosage")
+        frequency = items.get("frequency")
+        duration = items.get("duration")
+
+        if not name or not dosage or not frequency or not duration:
+            return jsonify({"error": "name and dosage are required for each prescription item"}), 400
+        
+        p = Prescription(
+            appointment_id=apt.id,
+            patient_id=apt.patient_id,
+            name=name,
+            dosage=dosage,
+            frequency=frequency,
+            duration=duration
+        )
+        db.session.add(p)
+        created_prescriptions.append(p)
+
     db.session.commit()
-    return jsonify({"message": "Prescription added successfully"},{"id": p.id}), 201
-
-
+    return jsonify({"message": "Prescription added successfully", "ids": [p.id for p in created_prescriptions]}), 201
 
 
 # -----------------------------
@@ -341,14 +372,13 @@ def add_note(apt_id):
     data = request.json
     n = Note(
         appointment_id=apt.id,
-        text=data.get("text")
+        text=data.get("text"),
+        patient_id=apt.patient_id,
+        date=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     )
     db.session.add(n)
     db.session.commit()
-    return jsonify({"message": "Note added successfully"},{"id": n.id}), 201
-
-
-
+    return jsonify({"message": "Note added successfully", "id": n.id}), 201
 
 # -----------------------------
 # Add Vital
@@ -361,20 +391,34 @@ def add_vital(apt_id):
     if not apt: 
         return jsonify({"error": "Appointment not found"}), 404
         
-    data = request.json
-    v = Vital(
-        appointment_id=apt.id,
-        patient_id=apt.patient_id,
-        label=data.get("label"),
-        value=data.get("value"),
-        unit=data.get("unit")
-    )
-    db.session.add(v)
+    vitals_data = request.json
+    created_vitals = []
+
+    for item in vitals_data:
+        label = item.get("label")
+        value = item.get("value")
+        unit = item.get("unit")
+
+        # Optional validation
+        if not label or not value:
+            return jsonify({"error": "label and value are required"}), 400
+
+        v = Vital(
+            appointment_id=apt.id,
+            patient_id=apt.patient_id,
+            label=label,
+            value=value,
+            unit=unit
+        )
+        db.session.add(v)
+        created_vitals.append(v)
+
     db.session.commit()
-    return jsonify({"message": "Vital added successfully"},{"id": v.id}), 201
 
-
-
+    return jsonify({
+        "message": "Vitals added successfully",
+        "ids": [v.id for v in created_vitals]
+    }), 201
 
 # -----------------------------
 # Add Medical Record (Unified History/Timeline API)
@@ -384,41 +428,82 @@ def add_vital(apt_id):
 @role_required("Doctor")
 def add_medical_record(apt_id):
     apt = Appointment.query.get(int(apt_id))
-    if not apt: 
+    if not apt:
         return jsonify({"error": "Appointment not found"}), 404
-        
+
     doctor_id = int(get_jwt_identity())
     doctor = Doctor.query.get(doctor_id)
-    
-    data = request.json
-    
-    record = MedicalRecord.query.filter_by(appointment_id=apt.id).first()
-    
-    title = data.get("title", f"Diagnosis: {data.get('primary_diagnosis', 'Medical Record')}")
-    description = data.get("description", data.get("symptoms", ""))
-    date_str = data.get("date", datetime.utcnow().strftime("%Y-%m-%d"))
 
-    if record:
-        record.title = title
-        record.description = description
-        record.date = date_str
-    else:
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    # --- Fields ---
+    title = data.get("title")
+    description = data.get("description")
+
+    # --- Date ---
+    try:
+        date_str = data.get("date")
+        date = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.utcnow()
+    except:
+        return jsonify({"error": "Invalid date format"}), 400
+
+    # --- Arrays of IDs ---
+    vital_ids = data.get("vital_ids", [])
+    note_ids = data.get("note_ids", [])
+    prescription_ids = data.get("prescription_ids", [])
+
+    # --- Get or create record ---
+    record = MedicalRecord.query.filter_by(appointment_id=apt.id).first()
+
+    if not record:
         record = MedicalRecord(
             patient_id=apt.patient_id,
             doctor_id=doctor.id,
             appointment_id=apt.id,
-            date=date_str,
+            date=date,
             title=title,
             description=description
         )
         db.session.add(record)
-    
+        db.session.commit()
+        status_code = 201
+    else:
+        record.title = title
+        record.description = description
+        record.date = date
+        status_code = 200
+
+    # --- LINK VITALS ---
+    for vid in vital_ids:
+        v = Vital.query.get(vid)
+        if v:
+            v.medical_record_id = record.id
+
+    # --- LINK NOTES ---
+    for nid in note_ids:
+        n = Note.query.get(nid)
+        if n:
+            n.medical_record_id = record.id
+
+    # --- LINK PRESCRIPTIONS ---
+    for pid in prescription_ids:
+        p = Prescription.query.get(pid)
+        if p:
+            p.medical_record_id = record.id
+
+    # --- Update appointment ---
     apt.diagnosisTitle = data.get("primary_diagnosis", title)
     apt.diagnosisDesc = data.get("symptoms", description)
-        
-    db.session.commit()
-    return jsonify({"message": "Medical history updated successfully", "record_id": record.id}), 201
 
+    apt.status = "Completed"
+    db.session.commit()
+
+    return jsonify({
+        "message": "Medical record saved successfully",
+        "record_id": record.id
+    }), status_code
 
 
 

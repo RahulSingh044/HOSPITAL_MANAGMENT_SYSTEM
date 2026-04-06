@@ -1,143 +1,187 @@
 <script setup>
-import { ref } from 'vue';
-import { 
-  CalendarIcon, UsersIcon, ClipboardIcon, ChevronLeftIcon, 
-  ChevronRightIcon, MoreHorizontalIcon, ArrowRightIcon, ShareIcon 
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import {
+  CalendarIcon, UsersIcon, ClipboardIcon,
+  ClockIcon, ChevronRightIcon, SearchIcon, FilterIcon
 } from 'lucide-vue-next';
+import { getDoctorDashboard } from '../../services/doctor';
 
-const weekDays = [
-  { name: 'Mon', date: '21', isToday: false },
-  { name: 'Tue', date: '22', isToday: false },
-  { name: 'Wed', date: '23', isToday: true },
-  { name: 'Thu', date: '24', isToday: false },
-  { name: 'Fri', date: '25', isToday: false },
-];
+const router = useRouter();
+const recentPatients = ref([]);
+const selectedDate = ref(new Date().toISOString().split('T')[0]);
+const dashboard = ref({
+  "appointments": [],
+  "pending_reports": 0,
+  "today_appointments": 0,
+  "total_patients": 0,
+});
 
-const timeSlots = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM'];
+// Generate next 14 days for the scroller
+const dynamicDays = computed(() => {
+  const days = [];
+  const today = new Date();
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(today.getDate() + i);
+    days.push({
+      name: date.toLocaleDateString('en-US', { weekday: 'short' }),
+      dateNum: date.getDate(),
+      isoDate: date.toISOString().split('T')[0]
+    });
+  }
+  return days;
+});
 
-const patients = ref([
-  { name: 'Alicia Vance', id: '#PX-9920', gender: 'Female', age: 42, img: 'https://i.pravatar.cc/150?u=alicia' },
-  { name: 'Marcus Wright', id: '#PX-8172', gender: 'Male', age: 65, img: 'https://i.pravatar.cc/150?u=marcus' },
-]);
+// Filter appointments based on the selected date from the scroller
+const filteredAppointments = computed(() => {
+  return dashboard.value.appointments
+    .filter(appt => appt.date === selectedDate.value)
+    .sort((a, b) => a.time.localeCompare(b.time));
+});
+
+const goToAppointment = (id) => router.push(`/appointment/${id}`);
+
+const doctorDashboard = async () => {
+  try {
+    const res = await getDoctorDashboard();
+    recentPatients.value = res.recent_patients || [];
+    dashboard.value = res;
+  } catch (error) { console.error(error); }
+};
+
+onMounted(doctorDashboard);
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 p-8 font-sans text-slate-700">
+  <div class="min-h-screen bg-[#f8fafc] p-4 lg:p-8 font-sans text-slate-700">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div class="flex justify-between items-start">
-          <div class="p-3 bg-blue-50 rounded-lg text-blue-600">
-            <CalendarIcon class="w-6 h-6" />
-          </div>
-          <span class="text-xs font-bold text-gray-400 uppercase">Today</span>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex items-center gap-5">
+        <div class="p-4 bg-blue-50 text-blue-600 rounded-xl">
+          <CalendarIcon class="w-6 h-6" />
         </div>
-        <h3 class="text-gray-500 mt-4 text-sm font-medium">Today's Appointments</h3>
-        <p class="text-4xl font-bold mt-1">12</p>
-        <p class="text-blue-600 text-xs font-semibold mt-2">Next: Sarah Parker @ 10:30 AM</p>
+        <div>
+          <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Today's Schedule</p>
+          <p class="text-3xl font-bold text-slate-900">{{ dashboard.today_appointments }} <span
+              class="text-sm font-normal text-slate-400">Slots</span></p>
+        </div>
       </div>
-
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div class="flex justify-between items-start">
-          <div class="p-3 bg-green-50 rounded-lg text-green-600">
-            <UsersIcon class="w-6 h-6" />
-          </div>
-          <span class="text-xs font-bold text-gray-400 uppercase">Active</span>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex items-center gap-5">
+        <div class="p-4 bg-emerald-50 text-emerald-600 rounded-xl">
+          <UsersIcon class="w-6 h-6" />
         </div>
-        <h3 class="text-gray-500 mt-4 text-sm font-medium">Total Patients</h3>
-        <p class="text-4xl font-bold mt-1">148</p>
-        <p class="text-green-600 text-xs font-semibold mt-2">+4 new patients this week</p>
+        <div>
+          <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Patients</p>
+          <p class="text-3xl font-bold text-slate-900">{{ dashboard.total_patients }}</p>
+        </div>
       </div>
-
-      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div class="flex justify-between items-start">
-          <div class="p-3 bg-orange-50 rounded-lg text-orange-600">
-            <ClipboardIcon class="w-6 h-6" />
-          </div>
-          <span class="text-xs font-bold text-red-500 uppercase">Urgent</span>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 flex items-center gap-5">
+        <div class="p-4 bg-orange-50 text-orange-600 rounded-xl">
+          <ClipboardIcon class="w-6 h-6" />
         </div>
-        <h3 class="text-gray-500 mt-4 text-sm font-medium">Pending Reports</h3>
-        <p class="text-4xl font-bold mt-1">07</p>
-        <p class="text-orange-600 text-xs font-semibold mt-2">3 require immediate review</p>
+        <div>
+          <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Pending Action</p>
+          <p class="text-3xl font-bold text-slate-900">{{ dashboard.pending_reports || 0 }}</p>
+        </div>
       </div>
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-8">
-      <div class="flex-1 space-y-8">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div class="p-6 flex justify-between items-center border-b border-gray-50">
-            <h2 class="text-xl font-bold">Weekly Schedule</h2>
-            <div class="flex items-center gap-4">
-              <div class="flex items-center bg-gray-100 rounded-lg px-2 py-1">
-                <button class="p-1 hover:text-blue-600"><ChevronLeftIcon class="w-4 h-4"/></button>
-                <span class="text-sm font-semibold px-4">Oct 21 - Oct 25, 2023</span>
-                <button class="p-1 hover:text-blue-600"><ChevronRightIcon class="w-4 h-4"/></button>
-              </div>
-              <button class="text-blue-600 text-sm font-semibold">Manage Slots</button>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-8 space-y-6">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <div class="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h2 class="text-xl font-bold text-slate-800">Appointment Planner</h2>
+            <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <button v-for="day in dynamicDays" :key="day.isoDate" @click="selectedDate = day.isoDate"
+                :class="selectedDate === day.isoDate ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'"
+                class="flex flex-col items-center justify-center min-w-[54px] h-16 rounded-2xl transition-all duration-200 shrink-0">
+                <span class="text-[10px] font-bold uppercase">{{ day.name }}</span>
+                <span class="text-lg font-black">{{ day.dateNum }}</span>
+              </button>
             </div>
           </div>
 
-          <div class="grid grid-cols-6 border-b border-gray-100 bg-gray-50/50">
-            <div class="p-4"></div>
-            <div v-for="day in weekDays" :key="day.date" class="p-4 text-center border-l border-gray-100" :class="{'bg-blue-50/50': day.isToday}">
-              <p class="text-[10px] font-bold text-gray-400 uppercase">{{ day.name }}</p>
-              <p class="text-lg font-bold" :class="day.isToday ? 'text-blue-600' : ''">{{ day.date }}</p>
-            </div>
-          </div>
+          <div class="p-6">
+            <div v-if="filteredAppointments.length > 0" class="space-y-4">
+              <div v-for="appt in filteredAppointments" :key="appt._id" @click="goToAppointment(appt._id)"
+                class="group flex items-center gap-6 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer">
+                <div
+                  class="flex flex-col items-center justify-center min-w-[70px] py-2 border-r border-slate-100 group-hover:border-blue-100">
+                  <span class="text-sm font-bold text-slate-900">{{ appt.time }}</span>
+                  <span class="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">Start</span>
+                </div>
 
-          <div class="relative h-100s overflow-y-auto">
-            <div v-for="time in timeSlots" :key="time" class="grid grid-cols-6 border-b border-gray-50 h-20">
-              <div class="text-[10px] font-bold text-gray-400 p-2 text-right uppercase">{{ time }}</div>
-              <div v-for="i in 5" :key="i" class="border-l border-gray-50 relative"></div>
-            </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-bold text-slate-800 truncate">{{ appt.patient_name }}</h3>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                      :class="appt.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                      {{ appt.status }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                    <span class="flex items-center gap-1">
+                      <UsersIcon class="w-3 h-3" /> {{ appt.patient_age }}y, {{ appt.patient_gender }}
+                    </span>
+                    <span class="flex items-center gap-1 text-blue-600">
+                      <ClockIcon class="w-3 h-3" /> {{ appt.type }}
+                    </span>
+                  </div>
+                </div>
 
-            <div class="absolute top-4 left-[16.6%] w-[16.6%] p-2">
-              <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg shadow-sm">
-                <p class="text-[10px] font-bold text-blue-700">Patient Checkup</p>
-                <p class="text-[9px] text-blue-500">Robert Fox</p>
+                <ChevronRightIcon
+                  class="w-5 h-5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
               </div>
+            </div>
+
+            <div v-else class="flex flex-col items-center justify-center py-20 text-slate-400">
+              <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                <CalendarIcon class="w-8 h-8 text-slate-200" />
+              </div>
+              <p class="font-medium">No appointments scheduled for this day</p>
+              <p class="text-xs">Select another date from the header above</p>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- 🔹 SIDEBAR -->
       <div class="w-full lg:w-80 space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-lg font-bold">Recent Patients</h2>
-            <MoreHorizontalIcon class="w-5 h-5 text-gray-400 cursor-pointer" />
+          <h2 class="text-lg font-bold mb-6">Recent Patients</h2>
+          <div v-if="recentPatients.length === 0" class="py-10 text-center text-gray-400 text-sm">
+            No recent activity
           </div>
-
-          <div class="space-y-4">
-            <div v-for="patient in patients" :key="patient.id" class="p-4 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
-              <div class="flex gap-3">
-                <img :src="patient.img" class="w-10 h-10 rounded-full object-cover" />
-                <div>
-                  <p class="text-sm font-bold">{{ patient.name }}</p>
-                  <p class="text-[10px] text-gray-400 uppercase">ID: {{ patient.id }} • {{ patient.gender }}, {{ patient.age }}</p>
-                </div>
+          <div v-else class="space-y-4">
+            <div v-for="p in recentPatients" :key="p._id"
+              class="flex items-center gap-3 p-3 border border-gray-50 rounded-xl hover:bg-gray-50 transition-colors">
+              <div
+                class="h-10 w-10 bg-blue-100 flex items-center justify-center rounded-full text-blue-600 text-xs font-bold shrink-0">
+                {{ p.name?.charAt(0) }}
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-bold truncate">
+                  {{ p.name }}
+                </p>
+                <p class="text-[10px] text-gray-400 uppercase tracking-tighter">
+                  {{ p.gender }}, {{ p.age }}y
+                </p>
               </div>
             </div>
           </div>
-
-          <div class="mt-8 pt-6 border-t border-gray-50 space-y-4">
-            <button class="flex items-center justify-between w-full text-sm font-bold text-gray-600 hover:text-blue-600">
-              Patient Directory <ArrowRightIcon class="w-4 h-4"/>
-            </button>
-            <button class="flex items-center justify-between w-full text-sm font-bold text-gray-600 hover:text-blue-600">
-              Shared Records <ShareIcon class="w-4 h-4"/>
-            </button>
-          </div>
-        </div>
-
-        <div class="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-            <p class="text-blue-700 text-[10px] font-black uppercase tracking-wider">Clinical Insight</p>
-            <p class="text-sm text-slate-600 mt-2 leading-relaxed">
-                You have <span class="font-bold text-slate-800">3 new test results</span> to review for Marcus Wright. High priority.
-            </p>
-            <button class="mt-4 text-blue-600 text-xs font-bold uppercase tracking-tight hover:underline">Review Now</button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+</style>
