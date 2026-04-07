@@ -26,7 +26,8 @@ const currentPath = computed(() => {
 });
 
 const redirectToProfile = () => {
-  if(role.value === "patient") router.push("/patient/profile");
+  if(role.value === "doctor") router.push("/doctor/profile");
+  else if(role.value === "patient") router.push("/patient/profile");
 };
 </script>
 
@@ -39,7 +40,7 @@ const redirectToProfile = () => {
     <div class="nav-right">
       
       <div class="nav-actions">
-        <template v-if="['Admin'].includes(currentPath)">
+        <template v-if="currentPath.toLowerCase() === 'doctors' && role === 'admin'">
           <button @click="addDoctor = true" class="btn btn-primary">
             <Plus :size="18" /> <span>Add Doctor</span>
           </button>

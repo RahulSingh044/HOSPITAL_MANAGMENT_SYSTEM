@@ -16,6 +16,7 @@ const currentRole = computed(() => {
   return segments[0] || 'patient';
 });
 
+
 const isActive = (link) => {
   if (link === '/' + currentRole.value) {
     return route.path === link;
@@ -51,7 +52,7 @@ const handleLogout = () => {
 };
 </script>
 
-<template>
+<template v-else>
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-logo">

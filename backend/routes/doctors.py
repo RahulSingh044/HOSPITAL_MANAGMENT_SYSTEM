@@ -25,34 +25,74 @@ doctor_bp = Blueprint("doctors", __name__)
 @jwt_required()
 @role_required("Doctor")
 def get_my_profile():
-    user_id = int(get_jwt_identity())
+    # Ensure user_id is the primary key (id) stored in the JWT
+    user_id = get_jwt_identity()
 
     cache_key = f"doctor:profile:{user_id}"
     cached = cache_get(cache_key)
     if cached:
         return jsonify(cached), 200
 
+    # Fetch doctor using the primary key
     doctor = Doctor.query.get(user_id)
     if not doctor:
         return jsonify({"error": "Doctor profile not found"}), 404
 
     data = {
-        "_id": str(doctor.id),
+        "id": doctor.id,
         "doctor_id": doctor.doctor_id,
         "name": doctor.name,
         "email": doctor.email,
-        "specialization": doctor.specialization,
-        "experience": doctor.experience,
-        "schedule": doctor.schedule,
-        "status": doctor.status,
         "mobile": doctor.mobile,
         "gender": doctor.gender,
-        "image": doctor.image_url or f"https://ui-avatars.com/api/?name={doctor.name}",
+        "specialization": doctor.specialization,
+        "experience": doctor.experience,
+        "fee": doctor.fee,
+        "clinic": doctor.clinic,
+        "education": doctor.education,
+        "bio": doctor.bio,
+        "languages": doctor.languages,
+        "online": doctor.online,
+        "status": doctor.status,
+        "rating": doctor.rating,
+        "reviews": doctor.reviews,
+        "image_url": doctor.image_url or f"https://ui-avatars.com/api/?name={doctor.name.replace(' ', '+')}",
     }
 
+    # Cache the result for 5 minutes
     cache_set(cache_key, data, ttl=300)
 
     return jsonify(data), 200
+
+@doctor_bp.route("/doctors/update", methods=["PUT"])
+@jwt_required()
+@role_required("Doctor")
+def update_profile():
+    user_id = get_jwt_identity()
+    doctor = Doctor.query.get(user_id)
+    
+    # Get form data
+    doctor.bio = request.form.get("bio", doctor.bio)
+    doctor.education = request.form.get("education", doctor.education)
+    doctor.experience = int(request.form.get("experience", doctor.experience))
+    doctor.fee = float(request.form.get("fee", doctor.fee))
+    doctor.clinic = request.form.get("clinic", doctor.clinic)
+    doctor.languages = request.form.get("languages", doctor.languages)
+    doctor.online = request.form.get("online") == 'true'
+    
+    # Handle Image Upload
+    if 'image' in request.files:
+        file = request.files['image']
+        # Upload to Cloudinary/S3 and get URL
+        # doctor.image_url = upload_service(file)
+        pass
+
+    db.session.commit()
+    
+    # CRITICAL: Clear cache so frontend sees new data
+    cache_delete_pattern(f"doctor:profile:{user_id}")
+    
+    return jsonify({"message": "Updated successfully"}), 200
 
 
 # Todays dashboard
@@ -246,6 +286,7 @@ def my_appointments():
 @jwt_required()
 @role_required("Doctor")
 def get_patients():
+    doctor_id = int(get_jwt_identity())
     page = request.args.get("page", 1, type=int)
     per_page = 10
 
@@ -422,7 +463,7 @@ def update_condition(patient_id):
     data = request.json
     patient.condition = data.get("condition", "")
     db.session.commit()
-    cache_delete_pattern(f"doctor:{doct}")
+    # cache_delete_pattern(f"doctor:{doc}")
     return jsonify(
         {"message": "Patient condition updated"},
     )

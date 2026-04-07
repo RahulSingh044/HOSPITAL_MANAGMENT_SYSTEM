@@ -2,6 +2,24 @@ import API from "./api";
 
 const BASE_URL = "/api/patients";
 
+export const getPatientProfile = async () => {
+  try {
+    const response = await API.get(`${BASE_URL}/me`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updatePatientProfile = async ( data) => {
+  try {
+    const response = await API.put(`${BASE_URL}/update`, data);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getDashDetails = async () => {
   try {
     const response = await API.get(`${BASE_URL}/dashboard`);

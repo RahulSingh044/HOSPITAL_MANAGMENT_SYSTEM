@@ -4,11 +4,13 @@ import { XIcon, SparklesIcon, Loader2Icon } from 'lucide-vue-next';
 import { specializations } from '../utils/DoctorSpecialization';
 import { addDoctor } from '../services/admin';
 import { schedules } from '../utils/DoctorSchedule';
+import { useToast } from 'vue-toastification';
 
 const props = defineProps({
     isOpen: Boolean
 });
 
+const toast = useToast();
 const emit = defineEmits(['close', 'submit']);
 const loading = ref(false);
 const showPassword = ref(false); 
@@ -47,9 +49,10 @@ const handleSubmit = async() => {
         loading.value = true
         await addDoctor(formData.value);
         emit('submit')
+        toast.success("Doctor profile created successfully!");
         closeModal()
     } catch (error) {
-        alert(error.message)
+        toast.error("Failed to create doctor profile. Please try again.");
     } finally {
         loading.value = false;
     }

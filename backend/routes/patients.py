@@ -39,38 +39,43 @@ def serialize_datetime(dt):
 # -----------------------------
 # Patient Profile
 # -----------------------------
+import json
+from flask import jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 @patient_bp.route("/patients/me", methods=["GET"])
 @jwt_required()
 @role_required("Patient")
 def get_my_profile():
-    user_id = int(get_jwt_identity())
+    user_id = get_jwt_identity()
 
     cache_key = f"patient:profile:{user_id}"
     cached = cache_get(cache_key)
     if cached:
-        return jsonify(json.loads(cached)), 200
+        # Assuming your cache_get returns a dict or you handle string conversion
+        return jsonify(cached), 200
 
     patient = Patient.query.get(user_id)
     if not patient:
         return jsonify({"error": "Patient profile not found"}), 404
 
-    try:
-        preferences = json.loads(patient.preferences) if patient.preferences else []
-    except:
-        preferences = []
-
-    profile = {
-        "_id": str(patient.id),
-        "fullName": patient.name,
+    data = {
+        "id": patient.id,
+        "medical_id": patient.medical_id,
+        "name": patient.name,
         "email": patient.email,
-        "phone": patient.mobile,
-        "dob": serialize_datetime(patient.dob),
+        "mobile": patient.mobile,
+        "age": patient.age,
+        "gender": patient.gender,
+        "dob": patient.dob,  
         "address": patient.address,
         "blood_type": patient.blood_type,
+        "condition": patient.condition,
+        "image_url": patient.image_url or f"https://ui-avatars.com/api/?name={patient.name.replace(' ', '+')}&background=0ea5e9&color=fff",
+        "preferences": patient.preferences
     }
 
-    data = {"profile": profile, "preferences": preferences}
-    cache_set(cache_key, json.dumps(data), ttl=300)
+    cache_set(cache_key, data, ttl=300)
 
     return jsonify(data), 200
 
@@ -81,25 +86,39 @@ def get_my_profile():
 @patient_bp.route("/patients/update", methods=["PUT"])
 @jwt_required()
 @role_required("Patient")
-def update_patient():
-    user_id = int(get_jwt_identity())
-    data = request.get_json() or {}
-
+def update_patient_profile():
+    user_id = get_jwt_identity()
     patient = Patient.query.get(user_id)
+
     if not patient:
-        return jsonify({"error": "Not found"}), 404
+        return jsonify({"error": "Patient record not found"}), 404
 
-    patient.name = data.get("fullName") or data.get("name") or patient.name
-    patient.mobile = data.get("phone") or data.get("mobile") or patient.mobile
-    patient.dob = data.get("dob", patient.dob)
-    patient.address = data.get("address", patient.address)
-    patient.blood_type = data.get("blood_type", patient.blood_type)
+    try:
+        patient.name = request.form.get("name", patient.name)
+        patient.dob = request.form.get("dob", patient.dob)
+        patient.gender = request.form.get("gender", patient.gender)
+        patient.address = request.form.get("address", patient.address)
+        patient.blood_type = request.form.get("blood_type", patient.blood_type)
+        
 
-    db.session.commit()
+        prefs_raw = request.form.get("preferences")
+        if prefs_raw:
+            try:
+                json.loads(prefs_raw) 
+                patient.preferences = prefs_raw
+            except ValueError:
+                return jsonify({"error": "Invalid preferences format"}), 400
 
-    cache_delete_pattern(f"patient:profile:{user_id}*")
 
-    return jsonify({"message": "Profile updated"}), 200
+        db.session.commit()
+        cache_key = f"patient:profile:{user_id}"
+        cache_delete_pattern(cache_key)
+
+        return jsonify({"message": "Profile updated successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # -----------------------------

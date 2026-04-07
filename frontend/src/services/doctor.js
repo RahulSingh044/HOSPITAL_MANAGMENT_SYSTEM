@@ -119,3 +119,23 @@ export const addMedicalRecord = async (id, recordData) => {
     throw new Error(error?.response?.data?.error || "Unable to add medical record");
   }
 };
+
+export const getDoctorProfile = async() => {
+  try {
+    const res = await API.get(`${BASE}/me`)
+    return res.data
+  } catch (error) {
+    throw new Error("Unable to fetch doctor profile");
+  }
+}
+
+export const updateDoctorProfile = async(profileData) => {
+  try {
+    const res = await API.put(`${BASE}/update`, profileData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return res
+  } catch (error) {
+    throw new Error("Unable to update doctor profile");
+  }
+}

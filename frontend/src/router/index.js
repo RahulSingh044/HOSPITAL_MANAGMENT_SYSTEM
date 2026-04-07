@@ -40,6 +40,7 @@ const routes = [
       { path: "patients/:id", component: () => import("../pages/doctor/PatientDetails.vue") },
       { path: "appointments", component: () => import("../pages/doctor/Appointments.vue") },
       { path: "appointment/:id", component: () => import("../pages/doctor/PatientAppointmentReport.vue") },
+      { path: "profile", component: () => import("../pages/doctor/DocProfile.vue") },
     ],
   },
 

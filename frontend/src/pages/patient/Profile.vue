@@ -1,115 +1,221 @@
 <script setup>
-import { ref, reactive } from 'vue';
-import DialogueBox from '../../components/DialogueBox.vue';
+import { ref, onMounted } from 'vue';
+import { Settings, Star, Camera, Check, X, Mail, Phone } from 'lucide-vue-next';
+import { useToast } from 'vue-toastification';
+import { getPatientProfile, updatePatientProfile } from '../../services/patient';
 
-const deactiveAccountModal = ref(null);
+const toast = useToast();
+const isEditing = ref(false);
+const loading = ref(false);
+const original = ref({});
+const selectedFile = ref(null);
 
-const deactiveAcc = async(id) => {
-    const ok = await deactiveAccountModal.value.open('Are you sure you want to deactivate your account? You can\'t reactivate it without contacting support.');
-    if(ok) {
-        alert('Account deactivated. Please contact support to reactivate.');
-    }else {
-        alert('Deactivation cancelled. Your account is safe.');
-    }
-}
-
-const profile = reactive({
-  fullName: 'Dr. Sarah Smith',
-  email: 'sarah.smith@example.com',
-  phone: '+1 (555) 000-0000',
-  dob: '1988-10-12',
-  address: '123 Healthcare Ave, Suite 400, Medical Center, NY 10001'
+const patient = ref({
+  name: '', medical_id: '', age: 0, gender: '',
+  mobile: '', email: '', dob: '', address: '',
+  blood_type: '', condition: '', image_url: '',
+  preferences: '[]'
 });
 
-const formFields = [
-  { id: 'name', label: 'Full Name', key: 'fullName', type: 'text' },
-  { id: 'email', label: 'Email Address', key: 'email', type: 'email' },
-  { id: 'phone', label: 'Phone Number', key: 'phone', type: 'tel' },
-  { id: 'dob', label: 'Date of Birth', key: 'dob', type: 'date' },
-];
-
-const preferences = reactive([
-  { label: 'Appointment Reminders', desc: 'Receive SMS and email reminders 24 hours before your visit.', enabled: true },
-  { label: 'Lab Results Notifications', desc: 'Get notified immediately when your test results are ready.', enabled: true },
-  { label: 'Health Tips & Newsletter', desc: 'Monthly curated health advice from our specialists.', enabled: false },
+const parsedPreferences = ref([
+  { label: 'Appointment Reminders', desc: 'SMS and email reminders 24h before visit.', enabled: true },
+  { label: 'Lab Notifications', desc: 'Get notified when test results are ready.', enabled: true },
+  { label: 'Health Newsletter', desc: 'Monthly curated health advice.', enabled: false },
 ]);
 
-const saveChanges = () => {
-  alert('Settings saved successfully!');
+onMounted(async () => {
+  try {
+    const res = await getPatientProfile();
+    console.log("Fetched patient profile:", res);
+    patient.value = res;
+    original.value = JSON.parse(JSON.stringify(res.data));
+
+    if (res.data.preferences) {
+      // Simple logic to sync local toggle states with DB string
+    }
+  } catch (e) {
+    console.error("Fetch error:", e);
+  }
+});
+
+const saveChanges = async () => {
+  loading.value = true;
+  try {
+    const formData = new FormData();
+    patient.value.preferences = JSON.stringify(parsedPreferences.value);
+
+    Object.keys(patient.value).forEach(key => {
+      formData.append(key, patient.value[key]);
+    });
+
+    if (selectedFile.value) formData.append('image', selectedFile.value);
+
+    const res = await updatePatientProfile(formData);
+
+    if (res.status !== 200) throw new Error("Update failed");
+    original.value = JSON.parse(JSON.stringify(patient.value));
+    isEditing.value = false;
+    toast.success("Profile updated successfully");
+  } catch (e) {
+    toast.error("Failed to update profile. Please try again.");
+  } finally {
+    loading.value = false;
+  }
 };
+
+const cancelChanges = () => {
+  patient.value = JSON.parse(JSON.stringify(original.value));
+  isEditing.value = false;
+};
+
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto p-4 md:p-8 font-sans text-slate-900 bg-[#F8FAFC] min-h-screen">
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-      <div>
-        <h1 class="text-3xl font-black text-slate-900">Patient Profile Settings</h1>
-        <p class="text-slate-500 mt-1 text-sm">Manage your account information, security settings, and notifications.</p>
-      </div>
-      <button @click="saveChanges" class="bg-[#2563eb] text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition active:scale-95">
-        Save Changes
-      </button>
-    </header>
+  <div class="executive-container">
+    <aside class="hero-pane">
+      <div class="glass-card">
+        <div class="profile-image-wrapper">
+          <img
+            :src="patient?.image_url || `https://ui-avatars.com/api/?name=${patient.name?.replace(' ', '+')}&background=0ea5e9&color=fff`"
+            alt="Patient Profile" />
+        </div>
 
-    <div class="space-y-6">
-      <section class="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm">
-        <h2 class="text-lg font-bold mb-1">Personal Information</h2>
-        <p class="text-xs text-slate-400 mb-8 font-medium">Update your basic profile details and contact information.</p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div v-for="field in formFields" :key="field.id" class="space-y-2">
-            <label :for="field.id" class="text-xs font-black text-slate-400 uppercase tracking-tighter">{{ field.label }}</label>
-            <input 
-              v-model="profile[field.key]"
-              :type="field.type" 
-              :id="field.id" 
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
-            />
-          </div>
-          <div class="md:col-span-2 space-y-2">
-            <label class="text-xs font-black text-slate-400 uppercase tracking-tighter">Residential Address</label>
-            <textarea 
-              v-model="profile.address"
-              rows="3" 
-              class="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none"
-            ></textarea>
+        <div class="hero-meta">
+          <h1 class="name-heading">{{ patient.name || 'Loading...' }}</h1>
+          <p class="specialty-subtext">ID: {{ patient.medical_id }}</p>
+          <div class="status-pill" :class="patient.condition?.toLowerCase().replace(' ', '-')">
+            <span class="dot"></span> {{ patient.condition }}
           </div>
         </div>
-      </section>
 
-      <section class="bg-white p-8 rounded-4xl border border-slate-100 shadow-sm">
-        <h2 class="text-lg font-bold mb-1">Preferences</h2>
-        <p class="text-xs text-slate-400 mb-8 font-medium">Customize how you receive updates and communications.</p>
-        
-        <div class="space-y-6">
-          <div v-for="pref in preferences" :key="pref.label" class="flex items-center justify-between py-2">
-            <div>
-              <p class="text-sm font-bold">{{ pref.label }}</p>
-              <p class="text-xs text-slate-400">{{ pref.desc }}</p>
-            </div>
-            <button @click="pref.enabled = !pref.enabled" 
-                    :class="pref.enabled ? 'bg-blue-600' : 'bg-slate-200'"
-                    class="w-12 h-6 rounded-full relative transition-colors duration-300">
-              <div :class="pref.enabled ? 'translate-x-6' : 'translate-x-1'" 
-                   class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm"></div>
+        <div class="quick-stats">
+          <div class="stat">
+            <span class="stat-label">Blood Type</span>
+            <span class="stat-value text-red-500">{{ patient.blood_type || 'N/A' }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Age</span>
+            <span class="stat-value">{{ patient.age || '—' }}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="data-pane">
+      <nav class="sticky-nav">
+        <div class="nav-left">
+          <span class="app-tag">Patient Portal / <span class="active-tag">Personal Registry</span></span>
+        </div>
+        <div class="nav-right">
+          <button v-if="!isEditing" @click="isEditing = true" class="btn-action-outline">
+            <Settings :size="16" /> Edit Profile
+          </button>
+          <div v-else class="edit-controls">
+            <button @click="cancelChanges" class="flex items-center gap-2">
+              <X :size="16" /> Discard
+            </button>
+            <button @click="saveChanges" class="btn-action-primary" :disabled="loading">
+              <Check :size="16" v-if="!loading" />
+              {{ loading ? 'Saving...' : 'Publish Changes' }}
             </button>
           </div>
         </div>
-      </section>
+      </nav>
 
-      <section class="bg-red-50/50 p-8 rounded-4xl border border-red-100 flex items-center justify-between">
-        <div>
-          <h2 class="text-sm font-bold text-red-600">Deactivate Account</h2>
-          <p class="text-[10px] text-red-400 font-medium">This will temporarily disable your portal access. You can reactivate it later.</p>
+      <section class="details-wrapper">
+        <div class="data-section">
+          <h2 class="data-header">Account Identity</h2>
+          <div class="data-grid">
+            <div class="data-item">
+              <label>Registered Email</label>
+              <div class="field-container readonly-container">
+                <div class="static-value">
+                  <Mail :size="14" class="inline-icon" /> {{ patient.email }}
+                </div>
+              </div>
+            </div>
+            <div class="data-item">
+              <label>Mobile Number</label>
+              <div class="field-container readonly-container">
+                <div class="static-value">
+                  <Phone :size="14" class="inline-icon" /> {{ patient.mobile }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <button @click="deactiveAcc(789)" class="bg-white border cursor-pointer border-red-100 text-red-600 px-6 py-2.5 rounded-xl font-bold text-xs hover:bg-red-50 transition">
-          Deactivate
-        </button>
+
+        <div class="data-section">
+          <h2 class="data-header">Personal Details</h2>
+          <div class="data-grid">
+            <div class="data-item">
+              <label>Full Name</label>
+              <div class="field-container" :class="{ 'editing': isEditing }">
+                <input v-model="patient.name" :readonly="!isEditing" type="text" />
+              </div>
+            </div>
+            <div class="data-item">
+              <label>Date of Birth</label>
+              <div class="field-container" :class="{ 'editing': isEditing }">
+                <input v-model="patient.dob" :readonly="!isEditing" type="date" />
+              </div>
+            </div>
+            <div class="data-item">
+              <label>Gender</label>
+              <div class="field-container" :class="{ 'editing': isEditing }">
+                <select v-if="isEditing" v-model="patient.gender" class="sleek-select">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <input v-else :value="patient.gender.toLocaleUpperCase()" readonly type="text" />
+              </div>
+            </div>
+            <div class="data-item">
+              <label>Blood Group</label>
+              <div class="field-container" :class="{ 'editing': isEditing }">
+                <select v-if="isEditing" v-model="patient.blood_type" class="sleek-select">
+                  <option value="" disabled>Select Blood Group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+                <input v-else :value="patient.blood_type || 'Not Set'" readonly type="text" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <h2 class="data-header">Residential Address</h2>
+          <div class="editable-field full">
+            <p v-if="!isEditing" class="bio-text">{{ patient.address || 'No address provided.' }}</p>
+            <textarea v-else v-model="patient.address" class="sleek-textarea"
+              placeholder="Enter your full home address..."></textarea>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <h2 class="data-header">Notification Preferences</h2>
+          <div class="preference-list">
+            <div v-for="(pref, index) in parsedPreferences" :key="index" class="toggle-box mb-4">
+              <div class="pref-info">
+                <span class="toggle-status" :class="{ 'active-text': pref.enabled }">{{ pref.label }}</span>
+                <p class="text-[11px] text-slate-400">{{ pref.desc }}</p>
+              </div>
+              <input type="checkbox" v-model="pref.enabled" :disabled="!isEditing" class="modern-switch" />
+            </div>
+          </div>
+        </div>
       </section>
-    </div>
+    </main>
   </div>
-
-  <DialogueBox ref="deactiveAccountModal"></DialogueBox>
-
 </template>
 
+<style src="./styles/profile.css" scoped>
+</style>
