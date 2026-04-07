@@ -9,7 +9,6 @@ register_bp = Blueprint("register", __name__)
 
 @register_bp.route("/register", methods=["POST"])
 def register():
-
     data = request.json
     role = str(data.get("role", "")).capitalize()
 
@@ -29,12 +28,28 @@ def register():
     elif role == "Patient":
         if Patient.query.filter_by(email=data["email"]).first():
             return jsonify({"error": "Email already exists"}), 400
-
+        dob_str = data.get("dob")
+        calculated_age = 0
+        
+        if dob_str:
+            try:
+                birth_date = datetime.strptime(dob_str, '%Y-%m-%d')
+                today = datetime.utcnow()
+                
+                calculated_age = today.year - birth_date.year
+                
+                has_had_birthday = (today.month, today.day) >= (birth_date.month, birth_date.day)
+                if not has_had_birthday:
+                    calculated_age -= 1
+            except ValueError:
+                return jsonify({"error": "Invalid DOB format. Use YYYY-MM-DD"}), 400
+        
         medical_id = get_next_medical_id()
         patient = Patient(
             medical_id=medical_id,
             name=data["name"],
-            age=data["age"],
+            dob=dob_str,
+            age=calculated_age,
             gender=data["gender"],
             mobile=data["mobile"],
             admission_date=datetime.utcnow(),
@@ -47,7 +62,8 @@ def register():
 
         return jsonify({
             "message": "Patient registered",
-            "medical_id": medical_id
+            "medical_id": medical_id,
+            "calculated_age": calculated_age
         }), 201
 
     else:

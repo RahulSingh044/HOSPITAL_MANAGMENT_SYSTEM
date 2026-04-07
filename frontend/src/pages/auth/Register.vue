@@ -27,8 +27,8 @@ const formData = ref({
 
 const handleSubmit = async () => {
     // Basic validation
-    const { name, gender, mobile, email, password } = formData.value;
-    if (!name || !gender || !mobile || !email || !password) {
+    const { name, gender, mobile, email, password, dob } = formData.value;
+    if (!name || !gender || !mobile || !email || !password || !dob) {
         toast.error('Please fill in all required fields.')
         return
     }
@@ -81,10 +81,9 @@ const handleSubmit = async () => {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="label-text">Age</label>
+                        <label class="label-text">Date of Birth</label>
                         <div class="relative-input">
-                            <input v-model="formData.age" type="number" min="0" placeholder="e.g. 30"
-                                class="auth-input" />
+                            <input v-model="formData.dob" type="date" class="auth-input" />
                         </div>
                     </div>
                 </div>
