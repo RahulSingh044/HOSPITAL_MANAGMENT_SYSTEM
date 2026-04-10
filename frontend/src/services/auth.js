@@ -17,3 +17,13 @@ export const registerAPI = async(userData) => {
         throw new Error("Registration Failed");
     }
 }
+
+export const logoutAPI = async() => {
+    try {
+        const res = await API.post("/auth/logout");
+        return res;
+    } catch (error) {
+        console.error("Logout Error:", error);
+        throw new Error("Logout Failed");
+    }
+}

@@ -22,9 +22,6 @@ def role_required(required_role):
 from extensions import db
 from models import Counter
 
-
-
-
 # -------------------------
 # ID Generator of Patient
 # -------------------------

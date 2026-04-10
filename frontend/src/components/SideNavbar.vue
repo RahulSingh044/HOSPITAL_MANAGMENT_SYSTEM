@@ -6,6 +6,10 @@ import {
   CalendarDays, LogOut, TimerReset
 } from 'lucide-vue-next';
 import { useUserStore } from '../store/userStore';
+import { logoutAPI } from '../services/auth';
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 const route = useRoute();
 const router = useRouter();
@@ -46,9 +50,19 @@ const menuGroups = {
 
 const currentMenu = computed(() => menuGroups[currentRole.value] || menuGroups.patient);
 
-const handleLogout = () => {
-  userStore.clearUser();
-  router.push('/auth/login');
+const handleLogout = async() => {
+  try {
+    const response = await logoutAPI();
+    if(response.status !== 200) {
+      toast.error('Logout failed');
+      return;
+    }
+    toast.success('Logout successful');
+    userStore.clearUser();
+    router.push('/auth/login');
+  } catch (error) {
+    toast.error('Error occurred while logging out');
+  }
 };
 </script>
 

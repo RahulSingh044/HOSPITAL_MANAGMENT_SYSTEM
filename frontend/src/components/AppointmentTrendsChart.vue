@@ -31,7 +31,6 @@ const weeklyData = ref([])
 const fetchTrend = async () => {
   try {
     const res = await dashboardTrends();
-    console.log("Trends". res)
     weeklyData.value = res
   } catch (error) {
     console.log("Appointment Trend Component Error", error)
